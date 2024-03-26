@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "types": ["bun-types"],
+    "lib": ["esnext"],
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "jsx": "react",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true
+  },
+  "include": ["src/**/*.js", "bun/**/*.js"]
+}

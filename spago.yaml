@@ -1,0 +1,24 @@
+package:
+  build:
+    strict: true
+    pedantic_packages: true
+  dependencies:
+    - prelude
+    - aff
+    - effect
+    - either
+    - maybe
+    - foldable-traversable
+    - console
+    - newtype
+    - strings
+    - stringutils
+    - transformers
+    - tuples
+    - typelevel-prelude
+  name: project
+workspace:
+  extra_packages: {}
+  package_set:
+    url: https://raw.githubusercontent.com/purescript/package-sets/psc-0.15.10-20230930/packages.json
+    hash: sha256-nTsd44o7/hrTdk0c6dh0wyBqhFFDJJIeKdQU6L1zv/A=
