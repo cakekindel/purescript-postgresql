@@ -1,5 +1,5 @@
-import * as Pg from 'pg'
-import * as Range from 'postgres-range'
+import Pg from 'pg'
+import Range from 'postgres-range'
 
 export const null_ = null
 

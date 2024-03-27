@@ -11,3 +11,4 @@
 .log
 .purs-repl
 .env
+pg

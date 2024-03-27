@@ -4,6 +4,7 @@ package:
     strict: true
     pedantic_packages: true
   dependencies:
+    - aff
     - aff-promise
     - bifunctors
     - control
@@ -12,6 +13,7 @@ package:
     - exceptions
     - foldable-traversable
     - foreign
+    - integers
     - lists
     - maybe
     - mmorph
@@ -21,13 +23,19 @@ package:
     - nullable
     - precise-datetime
     - prelude
+    - record
     - simple-json
     - transformers
+    - tuples
+    - typelevel-prelude
     - unsafe-coerce
   test:
     main: Test.Main
     dependencies:
+      - filterable
       - foreign-object
+      - node-child-process
+      - node-process
       - quickcheck
       - spec
       - spec-quickcheck

@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  db:
+    image: 'postgres:16-bookworm'
+    volumes:
+      - './pg:/var/run/postgresql'
+    environment:
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'password'
