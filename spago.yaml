@@ -13,15 +13,18 @@ package:
     - foreign
     - lists
     - maybe
+    - mmorph
     - newtype
     - node-buffer
     - precise-datetime
     - prelude
+    - simple-json
     - transformers
     - unsafe-coerce
   test:
     main: Test.Main
     dependencies:
+      - foreign-object
       - quickcheck
       - spec
       - spec-quickcheck

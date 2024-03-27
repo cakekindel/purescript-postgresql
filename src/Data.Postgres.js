@@ -1,4 +1,4 @@
-import { getTypeParser, setTypeParser } from 'pg-types'
+import * as Pg from 'pg'
 import * as Range from 'postgres-range'
 
 export const null_ = null
@@ -20,18 +20,18 @@ export const modifyPgTypes = () => {
 
   // @ts-ignore
   const asString = a => a
-  const asStringArray = getTypeParser(oid['text[]'])
+  const asStringArray = Pg.types.getTypeParser(oid['text[]'])
   const asStringRange = Range.parse
 
-  setTypeParser(oid['json'], asString)
-  setTypeParser(oid['jsonb'], asString)
-  setTypeParser(oid['json[]'], asStringArray)
-  setTypeParser(oid['jsonb[]'], asStringArray)
+  Pg.types.setTypeParser(oid['json'], asString)
+  Pg.types.setTypeParser(oid['jsonb'], asString)
+  Pg.types.setTypeParser(oid['json[]'], asStringArray)
+  Pg.types.setTypeParser(oid['jsonb[]'], asStringArray)
 
-  setTypeParser(oid['timestamp'], asString)
-  setTypeParser(oid['timestamptz'], asString)
-  setTypeParser(oid['timestamp[]'], asStringArray)
-  setTypeParser(oid['timestamptz[]'], asStringArray)
-  setTypeParser(oid['tsrange'], asStringRange)
-  setTypeParser(oid['tstzrange'], asStringRange)
+  Pg.types.setTypeParser(oid['timestamp'], asString)
+  Pg.types.setTypeParser(oid['timestamptz'], asString)
+  Pg.types.setTypeParser(oid['timestamp[]'], asStringArray)
+  Pg.types.setTypeParser(oid['timestamptz[]'], asStringArray)
+  Pg.types.setTypeParser(oid['tsrange'], asStringRange)
+  Pg.types.setTypeParser(oid['tstzrange'], asStringRange)
 }

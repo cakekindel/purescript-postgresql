@@ -4,13 +4,14 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Monad.Error.Class (liftEither, liftMaybe)
-import Control.Monad.Except (Except, ExceptT, except, runExcept, runExceptT, withExceptT)
+import Control.Monad.Except (ExceptT, runExceptT)
+import Control.Monad.Morph (hoist)
 import Data.Bifunctor (lmap)
 import Data.DateTime (DateTime)
 import Data.Generic.Rep (class Generic)
 import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap, wrap)
+import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Postgres.Raw (Raw)
 import Data.Postgres.Raw (unsafeFromForeign, unsafeToForeign) as Raw
 import Data.RFC3339String as DateTime.ISO
@@ -18,19 +19,21 @@ import Data.Show.Generic (genericShow)
 import Data.Traversable (traverse)
 import Effect (Effect)
 import Effect.Exception (error)
-import Foreign (ForeignError)
+import Foreign (ForeignError(..))
 import Foreign as F
 import Node.Buffer (Buffer)
+import Simple.JSON (class ReadForeign, class WriteForeign, readJSON', writeJSON)
 
-newtype JSON = JSON String
+newtype JSON a = JSON a
+
+derive instance Newtype (JSON a) _
+derive newtype instance WriteForeign a => WriteForeign (JSON a)
+derive newtype instance ReadForeign a => ReadForeign (JSON a)
 
 foreign import null_ :: Raw
 
--- | Important! This effect MUST be evaluated to guarantee
--- | that (de)serialization will work for timestamp and JSON types.
--- |
--- | This mutates the `pg-types`, overriding the default deserialization
--- | behavior for JSON and timestamp types.
+-- | This mutates `import('pg').types`, setting deserialization
+-- | for some types to unmarshal as strings rather than JS values.
 foreign import modifyPgTypes :: Effect Unit
 
 -- | The SQL value NULL
@@ -43,34 +46,11 @@ instance Show Null where
   show = genericShow
 
 -- | The serialization & deserialization monad.
-type RepT a = ExceptT RepError Effect a
-
--- | Errors encounterable while serializing & deserializing.
-data RepError
-  = RepErrorTypeMismatch { expected :: String, found :: String }
-  | RepErrorInvalid String
-  | RepErrorForeign ForeignError
-  | RepErrorOther String
-  | RepErrorMultiple (NonEmptyList RepError)
-
-derive instance Generic RepError _
-derive instance Eq RepError
-instance Show RepError where
-  show a = genericShow a
-
-instance Semigroup RepError where
-  append (RepErrorMultiple as) (RepErrorMultiple bs) = RepErrorMultiple (as <> bs)
-  append (RepErrorMultiple as) b = RepErrorMultiple (as <> pure b)
-  append a (RepErrorMultiple bs) = RepErrorMultiple (pure a <> bs)
-  append a b = RepErrorMultiple (pure a <> pure b)
+type RepT a = ExceptT (NonEmptyList ForeignError) Effect a
 
 -- | Flatten to an Effect, rendering any `RepError`s to `String` using `Show`.
 smash :: forall a. RepT a -> Effect a
 smash = liftEither <=< map (lmap (error <<< show)) <<< runExceptT
-
--- | Lift an `Except` returned by functions in the `Foreign` module to `RepT`
-liftForeign :: forall a. Except (NonEmptyList ForeignError) a -> RepT a
-liftForeign = except <<< runExcept <<< withExceptT (RepErrorMultiple <<< map RepErrorForeign)
 
 -- | Serialize data of type `a` to a `Raw` SQL value.
 class Serialize a where
@@ -94,6 +74,9 @@ instance Serialize Raw where
 
 instance Serialize Null where
   serialize _ = unsafeSerializeCoerce null_
+
+instance WriteForeign a => Serialize (JSON a) where
+  serialize = serialize <<< writeJSON <<< unwrap
 
 -- | `bytea`
 instance Serialize Buffer where
@@ -127,36 +110,39 @@ instance Serialize a => Serialize (Array a) where
 instance Deserialize Raw where
   deserialize = pure
 
+instance Deserialize Null where
+  deserialize = map (const Null) <<< F.readNullOrUndefined <<< Raw.unsafeToForeign
+
+instance ReadForeign a => Deserialize (JSON a) where
+  deserialize = map wrap <<< (hoist (pure <<< unwrap) <<< readJSON') <=< deserialize @String
+
 -- | `bytea`
 instance Deserialize Buffer where
-  deserialize = liftForeign <<< (F.unsafeReadTagged "Buffer") <<< Raw.unsafeToForeign
-
-instance Deserialize Null where
-  deserialize = map (const Null) <<< liftForeign <<< F.readNullOrUndefined <<< Raw.unsafeToForeign
+  deserialize = (F.unsafeReadTagged "Buffer") <<< Raw.unsafeToForeign
 
 instance Deserialize Int where
-  deserialize = liftForeign <<< F.readInt <<< Raw.unsafeToForeign
+  deserialize = F.readInt <<< Raw.unsafeToForeign
 
 instance Deserialize Boolean where
-  deserialize = liftForeign <<< F.readBoolean <<< Raw.unsafeToForeign
+  deserialize = F.readBoolean <<< Raw.unsafeToForeign
 
 instance Deserialize String where
-  deserialize = liftForeign <<< F.readString <<< Raw.unsafeToForeign
+  deserialize = F.readString <<< Raw.unsafeToForeign
 
 instance Deserialize Number where
-  deserialize = liftForeign <<< F.readNumber <<< Raw.unsafeToForeign
+  deserialize = F.readNumber <<< Raw.unsafeToForeign
 
 instance Deserialize Char where
-  deserialize = liftForeign <<< F.readChar <<< Raw.unsafeToForeign
+  deserialize = F.readChar <<< Raw.unsafeToForeign
 
 instance Deserialize DateTime where
   deserialize raw = do
     s :: String <- deserialize raw
-    let invalid = RepErrorInvalid $ "Not a valid ISO8601 string: `" <> s <> "`"
+    let invalid = pure $ ForeignError $ "Not a valid ISO8601 string: `" <> s <> "`"
     liftMaybe invalid $ DateTime.ISO.toDateTime $ wrap s
 
 instance Deserialize a => Deserialize (Array a) where
-  deserialize = traverse (deserialize <<< Raw.unsafeFromForeign) <=< liftForeign <<< F.readArray <<< Raw.unsafeToForeign
+  deserialize = traverse (deserialize <<< Raw.unsafeFromForeign) <=< F.readArray <<< Raw.unsafeToForeign
 
 instance Deserialize a => Deserialize (Maybe a) where
   deserialize raw =

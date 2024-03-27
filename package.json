@@ -8,12 +8,11 @@
   },
   "devDependencies": {
     "bun-types": "1.0.11",
-    "postgres-range": "^1.1.4",
     "purs-tidy": "^0.10.0",
-    "spago": "next"
-  },
-  "peerDependencies": {
     "typescript": "^5.0.0"
   },
-  "dependencies": { "pg-types": "^4.0.2" }
+  "dependencies": {
+    "postgres-range": "^1.1.4",
+    "pg": "^8.11.3"
+  }
 }

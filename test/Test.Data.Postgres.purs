@@ -8,8 +8,8 @@ import Data.DateTime (DateTime(..))
 import Data.DateTime.Instant as Instant
 import Data.Int as Int
 import Data.Maybe (Maybe, fromJust, fromMaybe, maybe)
-import Data.Newtype (wrap)
-import Data.Postgres (class Rep, Null(..), deserialize, null_, serialize, smash)
+import Data.Newtype (unwrap, wrap)
+import Data.Postgres (class Rep, JSON(..), Null(..), deserialize, null_, serialize, smash)
 import Data.Postgres.Range as Range
 import Data.Postgres.Raw (Raw)
 import Data.Postgres.Raw as Raw
@@ -19,7 +19,9 @@ import Effect.Class (liftEffect)
 import Effect.Console (log)
 import Effect.Unsafe (unsafePerformEffect)
 import Foreign (unsafeToForeign)
+import Foreign.Object as Object
 import Partial.Unsafe (unsafePartial)
+import Simple.JSON (writeImpl, writeJSON)
 import Test.QuickCheck (class Arbitrary, (==?))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
@@ -53,6 +55,21 @@ spec =
       check @(Maybe String) "Maybe String" identity (maybe null_ asRaw)
       check @(Array String) "Array String" identity asRaw
       check @DateTime "DateTime" dateTimeFromArbitrary (asRaw <<< DateTime.ISO.fromDateTime)
+
+      describe "JSON" do
+        describe "Record" do
+          it "deserialize" $
+            quickCheck \(a /\ b /\ c :: Int /\ String /\ Array {"foo" :: String}) -> unsafePerformEffect do
+              let
+                obj = {a, b, c}
+                json = writeJSON obj
+              act :: JSON _ <- smash $ deserialize $ asRaw json
+              pure $ obj ==? unwrap act
+          it "serialize" $
+            quickCheck \(a /\ b /\ c :: Int /\ String /\ Array {"foo" :: String}) -> unsafePerformEffect do
+              let obj = {a, b, c}
+              act <- smash $ serialize $ JSON obj
+              pure $ asRaw (writeJSON obj) ==? act
 
       describe "Null" do
         it "serialize" $ liftEffect $ shouldEqual null_ =<< (smash $ serialize Null)

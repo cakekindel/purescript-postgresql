@@ -12,13 +12,16 @@ workspace:
         - foreign
         - lists
         - maybe
+        - mmorph
         - newtype
         - node-buffer
         - precise-datetime
         - prelude
+        - simple-json
         - transformers
         - unsafe-coerce
       test_dependencies:
+        - foreign-object
         - quickcheck
         - spec
         - spec-quickcheck
@@ -45,6 +48,7 @@ workspace:
         - fixed-points
         - foldable-traversable
         - foreign
+        - foreign-object
         - fork
         - formatters
         - free
@@ -80,6 +84,7 @@ workspace:
         - record
         - refs
         - safe-coerce
+        - simple-json
         - spec
         - spec-quickcheck
         - st
@@ -88,9 +93,11 @@ workspace:
         - transformers
         - tuples
         - type-equality
+        - typelevel-prelude
         - unfoldable
         - unicode
         - unsafe-coerce
+        - variant
   extra_packages: {}
 packages:
   aff:
@@ -333,6 +340,23 @@ packages:
       - prelude
       - strings
       - transformers
+  foreign-object:
+    type: registry
+    version: 4.1.0
+    integrity: sha256-q24okj6mT+yGHYQ+ei/pYPj5ih6sTbu7eDv/WU56JVo=
+    dependencies:
+      - arrays
+      - foldable-traversable
+      - functions
+      - gen
+      - lists
+      - maybe
+      - prelude
+      - st
+      - tailrec
+      - tuples
+      - typelevel-prelude
+      - unfoldable
   fork:
     type: registry
     version: 6.0.0
@@ -735,6 +759,20 @@ packages:
     integrity: sha256-a1ibQkiUcbODbLE/WAq7Ttbbh9ex+x33VCQ7GngKudU=
     dependencies:
       - unsafe-coerce
+  simple-json:
+    type: registry
+    version: 9.0.0
+    integrity: sha256-K3RJaThqsszTd+TEklzZmAdDqvIHWgXIfKqlsoykU1c=
+    dependencies:
+      - arrays
+      - exceptions
+      - foreign
+      - foreign-object
+      - nullable
+      - prelude
+      - record
+      - typelevel-prelude
+      - variant
   spec:
     type: registry
     version: 7.6.0
@@ -852,6 +890,13 @@ packages:
     version: 4.0.1
     integrity: sha256-Hs9D6Y71zFi/b+qu5NSbuadUQXe5iv5iWx0226vOHUw=
     dependencies: []
+  typelevel-prelude:
+    type: registry
+    version: 7.0.0
+    integrity: sha256-uFF2ph+vHcQpfPuPf2a3ukJDFmLhApmkpTMviHIWgJM=
+    dependencies:
+      - prelude
+      - type-equality
   unfoldable:
     type: registry
     version: 6.0.0
@@ -875,3 +920,16 @@ packages:
     version: 6.0.0
     integrity: sha256-IqIYW4Vkevn8sI+6aUwRGvd87tVL36BBeOr0cGAE7t0=
     dependencies: []
+  variant:
+    type: registry
+    version: 8.0.0
+    integrity: sha256-SR//zQDg2dnbB8ZHslcxieUkCeNlbMToapvmh9onTtw=
+    dependencies:
+      - enums
+      - lists
+      - maybe
+      - partial
+      - prelude
+      - record
+      - tuples
+      - unsafe-coerce
