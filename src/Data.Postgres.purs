@@ -72,6 +72,10 @@ unsafeSerializeCoerce = pure <<< Raw.unsafeFromForeign <<< F.unsafeToForeign
 instance Serialize Raw where
   serialize = pure
 
+-- | Serializes as `Null`.
+instance Serialize Unit where
+  serialize _ = serialize Null
+
 instance Serialize Null where
   serialize _ = unsafeSerializeCoerce null_
 
@@ -109,6 +113,14 @@ instance Serialize a => Serialize (Array a) where
 
 instance Deserialize Raw where
   deserialize = pure
+
+-- | Note: this will always succeed, discarding
+-- | the actual raw value yielded.
+-- |
+-- | To explicitly deserialize NULL values and fail
+-- | when the value is non-null, use `Null`.
+instance Deserialize Unit where
+  deserialize _ = pure unit
 
 instance Deserialize Null where
   deserialize = map (const Null) <<< F.readNullOrUndefined <<< Raw.unsafeToForeign

@@ -3,6 +3,7 @@ workspace:
     pg:
       path: ./
       dependencies:
+        - aff-promise
         - bifunctors
         - control
         - datetime
@@ -15,6 +16,8 @@ workspace:
         - mmorph
         - newtype
         - node-buffer
+        - node-event-emitter
+        - nullable
         - precise-datetime
         - prelude
         - simple-json
@@ -27,6 +30,7 @@ workspace:
         - spec-quickcheck
       build_plan:
         - aff
+        - aff-promise
         - ansi
         - arraybuffer-types
         - arrays
@@ -66,6 +70,7 @@ workspace:
         - mmorph
         - newtype
         - node-buffer
+        - node-event-emitter
         - nonempty
         - now
         - nullable
@@ -122,6 +127,13 @@ packages:
       - tailrec
       - transformers
       - unsafe-coerce
+  aff-promise:
+    type: registry
+    version: 4.0.0
+    integrity: sha256-Kq5EupbUpXeUXx4JqGQE7/RTTz/H6idzWhsocwlEFhM=
+    dependencies:
+      - aff
+      - foreign
   ansi:
     type: registry
     version: 7.0.0
@@ -539,6 +551,18 @@ packages:
       - maybe
       - nullable
       - st
+      - unsafe-coerce
+  node-event-emitter:
+    type: registry
+    version: 3.0.0
+    integrity: sha256-Qw0MjsT4xRH2j2i4K8JmRjcMKnH5z1Cw39t00q4LE4w=
+    dependencies:
+      - effect
+      - either
+      - functions
+      - maybe
+      - nullable
+      - prelude
       - unsafe-coerce
   nonempty:
     type: registry

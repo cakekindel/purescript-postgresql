@@ -59,15 +59,15 @@ spec =
       describe "JSON" do
         describe "Record" do
           it "deserialize" $
-            quickCheck \(a /\ b /\ c :: Int /\ String /\ Array {"foo" :: String}) -> unsafePerformEffect do
+            quickCheck \(a /\ b /\ c :: Int /\ String /\ Array { "foo" :: String }) -> unsafePerformEffect do
               let
-                obj = {a, b, c}
+                obj = { a, b, c }
                 json = writeJSON obj
               act :: JSON _ <- smash $ deserialize $ asRaw json
               pure $ obj ==? unwrap act
           it "serialize" $
-            quickCheck \(a /\ b /\ c :: Int /\ String /\ Array {"foo" :: String}) -> unsafePerformEffect do
-              let obj = {a, b, c}
+            quickCheck \(a /\ b /\ c :: Int /\ String /\ Array { "foo" :: String }) -> unsafePerformEffect do
+              let obj = { a, b, c }
               act <- smash $ serialize $ JSON obj
               pure $ asRaw (writeJSON obj) ==? act
 

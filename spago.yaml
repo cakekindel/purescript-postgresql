@@ -4,6 +4,7 @@ package:
     strict: true
     pedantic_packages: true
   dependencies:
+    - aff-promise
     - bifunctors
     - control
     - datetime
@@ -16,6 +17,8 @@ package:
     - mmorph
     - newtype
     - node-buffer
+    - node-event-emitter
+    - nullable
     - precise-datetime
     - prelude
     - simple-json
