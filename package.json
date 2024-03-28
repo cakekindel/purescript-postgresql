@@ -12,7 +12,8 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "postgres-range": "^1.1.4",
-    "pg": "^8.11.3"
+    "decimal.js": "^10.4.3",
+    "pg": "^8.11.3",
+    "postgres-range": "^1.1.4"
   }
 }

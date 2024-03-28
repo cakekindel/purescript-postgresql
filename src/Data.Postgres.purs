@@ -27,6 +27,9 @@ import Simple.JSON (class ReadForeign, class WriteForeign, readJSON', writeJSON)
 newtype JSON a = JSON a
 
 derive instance Newtype (JSON a) _
+derive newtype instance Show a => Show (JSON a)
+derive newtype instance Eq a => Eq (JSON a)
+derive newtype instance Ord a => Ord (JSON a)
 derive newtype instance WriteForeign a => WriteForeign (JSON a)
 derive newtype instance ReadForeign a => ReadForeign (JSON a)
 

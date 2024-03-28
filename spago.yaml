@@ -6,6 +6,7 @@ package:
   dependencies:
     - aff
     - aff-promise
+    - arrays
     - bifunctors
     - control
     - datetime
