@@ -21,9 +21,12 @@ import Effect (Effect)
 import Effect.Exception (error)
 import Foreign (ForeignError(..))
 import Foreign as F
+import JS.BigInt (BigInt)
+import JS.BigInt as BigInt
 import Node.Buffer (Buffer)
 import Simple.JSON (class ReadForeign, class WriteForeign, readJSON', writeJSON)
 
+-- | Newtype hinting that this value should be serialized / deserialized as a JSON string.
 newtype JSON a = JSON a
 
 derive instance Newtype (JSON a) _
@@ -33,7 +36,8 @@ derive newtype instance Ord a => Ord (JSON a)
 derive newtype instance WriteForeign a => WriteForeign (JSON a)
 derive newtype instance ReadForeign a => ReadForeign (JSON a)
 
-foreign import null_ :: Raw
+-- | Literal javascript `null`
+foreign import jsNull :: Raw
 
 -- | This mutates `import('pg').types`, setting deserialization
 -- | for some types to unmarshal as strings rather than JS values.
@@ -51,7 +55,7 @@ instance Show Null where
 -- | The serialization & deserialization monad.
 type RepT a = ExceptT (NonEmptyList ForeignError) Effect a
 
--- | Flatten to an Effect, rendering any `RepError`s to `String` using `Show`.
+-- | Flatten to an Effect, `show`ing errors
 smash :: forall a. RepT a -> Effect a
 smash = liftEither <=< map (lmap (error <<< show)) <<< runExceptT
 
@@ -68,20 +72,26 @@ class (Serialize a, Deserialize a) <= Rep a
 
 instance (Serialize a, Deserialize a) => Rep a
 
--- | Coerces the value to `Raw`
+-- | Coerces the value to `Raw`.
+-- |
+-- | This is only safe for values whose javascript representation
+-- | can be directly serialized by `node-postgres` to the corresponding
+-- | SQL type.
 unsafeSerializeCoerce :: forall m a. Monad m => a -> m Raw
 unsafeSerializeCoerce = pure <<< Raw.unsafeFromForeign <<< F.unsafeToForeign
 
 instance Serialize Raw where
   serialize = pure
 
--- | Serializes as `Null`.
+-- | `NULL`
 instance Serialize Unit where
   serialize _ = serialize Null
 
+-- | `NULL`
 instance Serialize Null where
-  serialize _ = unsafeSerializeCoerce null_
+  serialize _ = unsafeSerializeCoerce jsNull
 
+-- | `json`, `jsonb`
 instance WriteForeign a => Serialize (JSON a) where
   serialize = serialize <<< writeJSON <<< unwrap
 
@@ -89,45 +99,51 @@ instance WriteForeign a => Serialize (JSON a) where
 instance Serialize Buffer where
   serialize = unsafeSerializeCoerce
 
+-- | `int2`, `int4`
 instance Serialize Int where
   serialize = unsafeSerializeCoerce
 
+-- | `int8`
+instance Serialize BigInt where
+  serialize = serialize <<< BigInt.toString
+
+-- | `bool`
 instance Serialize Boolean where
   serialize = unsafeSerializeCoerce
 
+-- | `text`, `inet`, `tsquery`, `tsvector`, `uuid`, `xml`, `cidr`, `time`, `timetz`
 instance Serialize String where
   serialize = unsafeSerializeCoerce
 
+-- | `float4`, `float8`
 instance Serialize Number where
   serialize = unsafeSerializeCoerce
 
-instance Serialize Char where
-  serialize = unsafeSerializeCoerce
-
+-- | `timestamp`, `timestamptz`
 instance Serialize DateTime where
   serialize = serialize <<< unwrap <<< DateTime.ISO.fromDateTime
 
+-- | `Just` -> `a`, `Nothing` -> `NULL`
 instance Serialize a => Serialize (Maybe a) where
   serialize (Just a) = serialize a
-  serialize Nothing = unsafeSerializeCoerce null_
+  serialize Nothing = unsafeSerializeCoerce jsNull
 
+-- | postgres `array`
 instance Serialize a => Serialize (Array a) where
   serialize = unsafeSerializeCoerce <=< traverse serialize
 
 instance Deserialize Raw where
   deserialize = pure
 
--- | Note: this will always succeed, discarding
--- | the actual raw value yielded.
--- |
--- | To explicitly deserialize NULL values and fail
--- | when the value is non-null, use `Null`.
+-- | `NULL` (always succeeds)
 instance Deserialize Unit where
   deserialize _ = pure unit
 
+-- | `NULL` (fails if non-null)
 instance Deserialize Null where
   deserialize = map (const Null) <<< F.readNullOrUndefined <<< Raw.unsafeToForeign
 
+-- | `json`, `jsonb`
 instance ReadForeign a => Deserialize (JSON a) where
   deserialize = map wrap <<< (hoist (pure <<< unwrap) <<< readJSON') <=< deserialize @String
 
@@ -135,30 +151,43 @@ instance ReadForeign a => Deserialize (JSON a) where
 instance Deserialize Buffer where
   deserialize = (F.unsafeReadTagged "Buffer") <<< Raw.unsafeToForeign
 
+-- | `int2`, `int4`
 instance Deserialize Int where
   deserialize = F.readInt <<< Raw.unsafeToForeign
 
+-- | `int8`
+instance Deserialize BigInt where
+  deserialize =
+    let
+      invalid s = pure $ ForeignError $ "Invalid bigint: " <> s
+      fromString s = liftMaybe (invalid s) $ BigInt.fromString s
+    in
+      fromString <=< deserialize @String
+
+-- | `bool`
 instance Deserialize Boolean where
   deserialize = F.readBoolean <<< Raw.unsafeToForeign
 
+-- | `text`, `inet`, `tsquery`, `tsvector`, `uuid`, `xml`, `cidr`, `time`, `timetz`
 instance Deserialize String where
   deserialize = F.readString <<< Raw.unsafeToForeign
 
+-- | `float4`, `float8`
 instance Deserialize Number where
   deserialize = F.readNumber <<< Raw.unsafeToForeign
 
-instance Deserialize Char where
-  deserialize = F.readChar <<< Raw.unsafeToForeign
-
+-- | `timestamp`, `timestamptz`
 instance Deserialize DateTime where
   deserialize raw = do
     s :: String <- deserialize raw
     let invalid = pure $ ForeignError $ "Not a valid ISO8601 string: `" <> s <> "`"
     liftMaybe invalid $ DateTime.ISO.toDateTime $ wrap s
 
+-- | postgres `array`
 instance Deserialize a => Deserialize (Array a) where
   deserialize = traverse (deserialize <<< Raw.unsafeFromForeign) <=< F.readArray <<< Raw.unsafeToForeign
 
+-- | non-NULL -> `Just`, NULL -> `Nothing`
 instance Deserialize a => Deserialize (Maybe a) where
   deserialize raw =
     let

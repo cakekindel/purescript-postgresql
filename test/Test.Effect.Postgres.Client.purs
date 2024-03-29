@@ -7,31 +7,11 @@ import Data.Either (Either, isLeft)
 import Data.Newtype (wrap)
 import Data.Postgres (JSON(..))
 import Data.PreciseDateTime (fromRFC3339String, toDateTimeLossy)
-import Effect (Effect)
-import Effect.Aff (Aff, bracket)
 import Effect.Aff.Postgres.Client (query)
 import Effect.Aff.Postgres.Client as PG.Aff.Client
-import Effect.Class (liftEffect)
-import Effect.Postgres.Client as PG
-import Node.Path as Path
-import Node.Process (cwd)
+import Test.Common (withClient)
 import Test.Spec (Spec, around, describe, it)
 import Test.Spec.Assertions (shouldEqual)
-
-config
-  :: Effect
-       { database :: String
-       , host :: String
-       , password :: String
-       , user :: String
-       }
-config = do
-  cwd' <- liftEffect cwd
-  host <- liftEffect $ Path.resolve [ cwd' ] "./pg"
-  pure { host, user: "postgres", password: "password", database: "postgres" }
-
-withClient :: (PG.Client -> Aff Unit) -> Aff Unit
-withClient = bracket (PG.Aff.Client.connected =<< liftEffect config) PG.Aff.Client.end
 
 spec :: Spec Unit
 spec =
@@ -46,12 +26,9 @@ spec =
           isLeft res `shouldEqual` true
         it "rowsAffected is correct" \c -> do
           void $ PG.Aff.Client.exec "create temp table foo (bar int);" c
-          cta <- PG.Aff.Client.exec "insert into foo values (1);" c
-          cta `shouldEqual` 1
-          ctb <- PG.Aff.Client.exec "insert into foo values (1), (2), (3);" c
-          ctb `shouldEqual` 3
-          ctc <- PG.Aff.Client.exec "update foo set bar = 10;" c
-          ctc `shouldEqual` 4
+          shouldEqual 1 =<< PG.Aff.Client.exec "insert into foo values (1);" c
+          shouldEqual 3 =<< PG.Aff.Client.exec "insert into foo values (1), (2), (3);" c
+          shouldEqual 4 =<< PG.Aff.Client.exec "update foo set bar = 10;" c
         describe "timestamp" do
           it "unmarshals" \c -> do
             let exp = toDateTimeLossy <$> fromRFC3339String (wrap "2020-01-01T00:00:00Z")

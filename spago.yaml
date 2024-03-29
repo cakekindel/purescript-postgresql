@@ -2,7 +2,7 @@ package:
   name: pg
   build:
     strict: true
-    pedantic_packages: true
+    pedanticPackages: true
   dependencies:
     - aff
     - aff-promise
@@ -15,6 +15,7 @@ package:
     - foldable-traversable
     - foreign
     - integers
+    - js-bigints
     - lists
     - maybe
     - mmorph
@@ -41,6 +42,6 @@ package:
       - spec
       - spec-quickcheck
 workspace:
-  extra_packages: {}
+  extraPackages: {}
   packageSet:
     registry: 50.5.0
