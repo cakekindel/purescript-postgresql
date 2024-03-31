@@ -1,15 +1,11 @@
 import Pg from 'pg'
 
-import { __uncfg as uncfgClient } from './Effect.Postgres.Client.js'
-
 /** @typedef {{idleTimeout: unknown}} PoolConfigExtra */
 
 /** @type {(o: {unwrapMillis: (_: unknown) => number}) => (cfg: Pg.PoolConfig & PoolConfigExtra & import('./Effect.Postgres.Client.js').ClientConfigExtra) => Pg.PoolConfig} */
 export const __uncfg =
   ({ unwrapMillis }) =>
   cfg => {
-    uncfgClient({ unwrapMillis })(cfg)
-
     if ('idleTimeout' in cfg) {
       cfg.idleTimeoutMillis = unwrapMillis(cfg.idleTimeout)
     }

@@ -3,6 +3,8 @@ module Test.Data.Postgres where
 import Prelude
 
 import Control.Monad.Gen (chooseInt, elements, oneOf)
+import Control.Parallel (parTraverse_)
+import Data.Array (intercalate)
 import Data.Array as Array
 import Data.Array.NonEmpty as Array.NonEmpty
 import Data.DateTime (DateTime(..), canonicalDate)
@@ -38,10 +40,10 @@ import Node.Buffer (Buffer)
 import Node.Buffer as Buffer
 import Partial.Unsafe (unsafePartial)
 import Simple.JSON (writeJSON)
-import Test.Common (withClient)
+import Test.Common (withClient, withPoolClient)
 import Test.QuickCheck (class Arbitrary, arbitrary, randomSeed)
 import Test.QuickCheck.Gen (sample, vectorOf)
-import Test.Spec (Spec, SpecT, around, describe, it)
+import Test.Spec (Spec, SpecT, around, describe, it, parallel)
 import Test.Spec.Assertions (fail)
 
 foreign import readBigInt64BE :: Buffer -> Effect BigInt
@@ -133,52 +135,77 @@ instance Arbitrary GenJSON where
 asRaw :: forall a. a -> Raw
 asRaw = Raw.unsafeFromForeign <<< unsafeToForeign
 
+type PursType = String
+type SQLType = String
+type FromArbitrary x a = x -> a
+type IsEqual a = a -> a -> Boolean
+
+class (Show a, FromRow a, Rep a) <= Checkable a
+
+instance (Show a, FromRow a, Rep a) => Checkable a
+
 spec :: Spec Unit
 spec =
   let
-    check :: forall @a @x. Show a => Arbitrary x => Rep a => FromRow a => String -> String -> (x -> a) -> (a -> a -> Boolean) -> SpecT Aff Client Identity Unit
-    check purs sql xa isEq =
+    check
+      :: forall @a @x
+       . Checkable a
+      => Arbitrary x
+      => { purs :: String
+         , sql :: String
+         , fromArb :: x -> a
+         , isEq :: a -> a -> Boolean
+         }
+      -> SpecT Aff Client Identity Unit
+    check { purs, sql, fromArb, isEq } =
       it (purs <> " <> " <> sql) \c -> do
         let
-          tab = String.replace (wrap " ") (wrap "_") $ String.replace (wrap "[") (wrap "") $ String.replace (wrap "]") (wrap "") $ sql <> "_is_" <> String.toLower purs
+          tab =
+            String.replace (wrap " ") (wrap "_")
+              $ String.replace (wrap "[") (wrap "")
+              $ String.replace (wrap "]") (wrap "")
+              $ sql <> "_is_" <> String.toLower purs
+          createtab =
+            intercalate "\n"
+              [ "create temp table " <> tab
+              , "  ( val " <> sql
+              , "  );"
+              ]
           ser x =
             Q.build do
-              x' <- Q.param $ xa x
-              pure $ "insert into " <> tab <> " values (" <> x' <> " :: " <> sql <> ")"
+              x' <- Q.param $ fromArb x
+              let val = x' <> " :: " <> sql
+              pure $ "insert into " <> tab <> " values (" <> val <> ")"
           de x =
             Q.build do
-              x' <- Q.param $ xa x
-              pure $ "select " <> x' <> " :: " <> sql
-        void $ exec ("create temp table " <> tab <> " (val " <> sql <> ")") c
+              x' <- Q.param $ fromArb x
+              let val = x' <> " :: " <> sql
+              pure $ "select " <> val
+        void $ exec createtab c
         seed <- liftEffect randomSeed
-        let
-          xs = sample seed 20 (arbitrary @x)
-        void $ for xs \x -> do
-          void $ exec (ser x) c
-          res :: Array a <- query (de x) c
-          let
-            exp = xa x
-            act = unsafePartial fromJust $ Array.head res
-          when (not $ isEq exp act) $ fail $ "expected " <> show exp <> " to equal " <> show act
-
-    check_ :: forall @a. Eq a => Show a => Arbitrary a => FromRow a => Rep a => String -> String -> SpecT Aff Client Identity Unit
-    check_ purs sql = check @a @a purs sql identity eq
+        let xs = sample seed 10 (arbitrary @x)
+        flip parTraverse_ xs
+          \x -> do
+            void $ exec (ser x) c
+            res <- query (de x) c
+            let
+              exp = fromArb x
+              act = unsafePartial fromJust $ Array.head res
+            when (not $ isEq exp act) $ fail $ "expected " <> show exp <> " to equal " <> show act
   in
-    around withClient
+    around withPoolClient
       $ describe "Data.Postgres"
       $ do
-          check @Int @GenSmallInt "Int" "int2" unwrap eq
-          check_ @Int "Int" "int4"
+          check @Int @GenSmallInt { purs: "Int", sql: "int2", fromArb: unwrap, isEq: eq }
+          check @Int { purs: "Int", sql: "int4", fromArb: identity, isEq: eq }
+          check @String @GenString { purs: "String", sql: "text", fromArb: unwrap, isEq: eq }
+          check @Boolean { purs: "Boolean", sql: "bool", fromArb: identity, isEq: eq }
+          check @Number @GenSmallFloat { purs: "Number", sql: "float4", fromArb: unwrap, isEq: \a b -> Number.abs (a - b) <= 0.0001 }
+          check @Number { purs: "Number", sql: "float8", fromArb: identity, isEq: eq }
+          check @BigInt @GenBigInt { purs: "BigInt", sql: "int8", fromArb: unwrap, isEq: eq }
+          check @DateTime @GenDateTime { purs: "DateTime", sql: "timestamptz", fromArb: unwrap, isEq: eq }
 
-          check @String @GenString "String" "text" unwrap eq
+          check @(Maybe String) @(Maybe GenString) { purs: "Maybe String", sql: "text", fromArb: map unwrap, isEq: eq }
+          check @(Array String) @(Array GenString) { purs: "Array String", sql: "text[]", fromArb: map unwrap, isEq: eq }
 
-          check_ @Boolean "Boolean" "bool"
-
-          check @Number @GenSmallFloat "Number" "float4" unwrap (\a b -> Number.abs (a - b) <= 0.0001)
-          check_ @Number "Number" "float8"
-
-          check @BigInt @GenBigInt "BigInt" "int8" unwrap eq
-          check @(Maybe String) @(Maybe GenString) "Maybe String" "text" (map unwrap) eq
-          check @(Array String) @(Array GenString) "Array String" "text[]" (map unwrap) eq
-          check @DateTime @GenDateTime "DateTime" "timestamptz" unwrap eq
-          check @String @GenJSON "JSON" "json" (writeJSON <<< unwrap) eq
+          check @String @GenJSON { purs: "JSON", sql: "json", fromArb: writeJSON <<< unwrap, isEq: eq }

@@ -46,7 +46,8 @@ foreign import clientWaitingCount :: Pool -> Int
 make :: forall r omitted. Union r omitted (Config ()) => Record r -> Effect Pool
 make r = do
   modifyPgTypes
-  __make $ __uncfg { unwrapMillis: unwrap } $ unsafeToForeign r
+  let asClientConfig = Client.__uncfg { unwrapMillis: unwrap } $ unsafeToForeign r
+  __make $ __uncfg { unwrapMillis: unwrap } $ unsafeToForeign asClientConfig
 
 -- | <https://node-postgres.com/apis/pool#releasing-clients>
 releaseClient :: Pool -> Client -> Effect Unit
