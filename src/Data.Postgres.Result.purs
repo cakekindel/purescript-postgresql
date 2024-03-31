@@ -15,38 +15,83 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Foreign (ForeignError(..))
 import Type.Prelude (Proxy(..))
 
+-- | A raw query result
+-- |
+-- | <https://node-postgres.com/apis/result>
 foreign import data Result :: Type
 
-foreign import rowsAffectedImpl :: Result -> Nullable Number
-foreign import rows :: Result -> Array (Array Raw)
-
+-- | Returns the number of rows affected by the query
+-- |
+-- | <https://node-postgres.com/apis/result#resultrowcount-int--null>
 rowsAffected :: Result -> Maybe Int
-rowsAffected = Int.fromNumber <=< Nullable.toMaybe <<< rowsAffectedImpl
+rowsAffected = Int.fromNumber <=< Nullable.toMaybe <<< __rowsAffected
 
-class FromResult (a :: Type) where
-  expectedRowLength :: forall g. g a -> Int
+-- | Can be unmarshalled from a queried row
+-- |
+-- | Implementations are provided for:
+-- |  * tuples of any length containing types that are `Rep`
+-- |  * tuples of any length with the last member of `Array Raw`
+-- |  * a single value of a type that is `Rep`
+-- |  * `Array Raw`
+-- |  * `Unit` (always succeeds)
+-- |
+-- | ```
+-- | -- CREATE TABLE foo
+-- | --   ( id INT NOT NULL PRIMARY KEY
+-- | --   , fruit TEXT NOT NULL
+-- | --   , created TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- | --   );
+-- | do
+-- |   let q = query "select id, fruit, created from foo" client
+-- |
+-- |   -- pick all 3 columns explicitly
+-- |   _ :: Array (Int /\ String /\ DateTime) <- q
+-- |
+-- |   -- pick first 2 columns, discarding any others
+-- |   _ :: Array (Int /\ String) <- q
+-- |
+-- |   -- pick first 2 columns, if any more keep as `Array Raw`
+-- |   _ :: Array (Int /\ String /\ Array Raw) <- q
+-- |
+-- |   -- pick just the ID, discarding all other columns
+-- |   id :: Array Int <- q
+-- |
+-- |   pure unit
+-- | ```
+class FromRow (a :: Type) where
+  -- | Minimum length of row for type `a`
+  minColumnCount :: forall g. g a -> Int
+  -- | Performs the conversion
   fromRow :: Array Raw -> RepT a
 
-instance (Rep a, FromResult b) => FromResult (a /\ b) where
-  expectedRowLength _ = expectedRowLength (Proxy @b) + 1
+instance (Rep a, FromRow b) => FromRow (a /\ b) where
+  minColumnCount _ = minColumnCount (Proxy @b) + 1
   fromRow r =
     let
-      expLen = expectedRowLength (Proxy @(Tuple a b))
-      lengthMismatch = pure $ TypeMismatch ("Expected row of length " <> show expLen) ("Found row of length " <> show (Array.length r))
+      minLen = minColumnCount (Proxy @(Tuple a b))
+      lengthMismatch = pure $ TypeMismatch ("Expected row to have at least " <> show minLen <> " columns") ("Found row of length " <> show (Array.length r))
     in
       do
-        when (Array.length r /= expLen) (throwError lengthMismatch)
+        when (Array.length r < minLen) (throwError lengthMismatch)
         a <- deserialize =<< liftMaybe lengthMismatch (Array.head r)
         b <- fromRow =<< liftMaybe lengthMismatch (Array.tail r)
         pure $ a /\ b
-else instance FromResult Unit where
-  expectedRowLength _ = 0
+else instance FromRow (Array Raw) where
+  minColumnCount _ = 0
+  fromRow = pure
+else instance FromRow Unit where
+  minColumnCount _ = 0
   fromRow _ = pure unit
-else instance Rep a => FromResult a where
-  expectedRowLength _ = 1
-  fromRow =
+else instance Rep a => FromRow a where
+  minColumnCount _ = 1
+  fromRow r =
     let
-      get [ a ] = pure a
-      get o = throwError $ pure $ TypeMismatch "Expected row of length 1" $ show o
+      err = pure $ TypeMismatch "Expected row of length >= 1" "Empty row"
     in
-      deserialize <=< get
+      deserialize =<< liftMaybe err (Array.head r)
+
+-- | FFI binding for `Result#rowCount`
+foreign import __rowsAffected :: Result -> Nullable Number
+
+-- | FFI binding for `Result#rows`
+foreign import rows :: Result -> Array (Array Raw)

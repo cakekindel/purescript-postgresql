@@ -6,7 +6,7 @@ import * as Range from 'postgres-range'
  */
 
 /** @type {<T>(_: Range.Range<T>) => RangeRawRecord<T>} */
-export const rangeRawToRecord = r => {
+export const __rangeRawToRecord = r => {
   if (r.hasMask(Range.RANGE_EMPTY)) {
     return {
       upper: undefined,
@@ -27,7 +27,7 @@ export const rangeRawToRecord = r => {
 }
 
 /** @type {<T>(_: RangeRawRecord<T>) => Range.Range<T>} */
-export const rangeRawFromRecord = r => {
+export const __rangeRawFromRecord = r => {
   const upper = r.upper === undefined ? null : r.upper
   const lower = r.lower === undefined ? null : r.lower
   if (upper === null && lower === null) {
@@ -52,17 +52,17 @@ export const rangeRawFromRecord = r => {
 }
 
 /** @type {<T>(r: Range.Range<T>) => () => string} */
-export const rangeRawSerialize = r => () => {
+export const __rangeRawSerialize = r => () => {
   return Range.serialize(r)
 }
 
 /** @type {<T>(r: string) => (f: (s: string) => () => T) => () => Range.Range<T>} */
-export const rangeRawParse = r => f => () => {
+export const __rangeRawParse = r => f => () => {
   return Range.parse(r, s => f(s)())
 }
 
 /** @type {(r: unknown) => () => Range.Range<unknown>} */
-export const readRangeRaw = r => () => {
+export const __rangeRawFromRaw = r => () => {
   if (r instanceof Range.Range) {
     return r
   } else {

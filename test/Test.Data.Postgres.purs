@@ -18,7 +18,7 @@ import Data.Postgres (class Rep, jsNull)
 import Data.Postgres.Query.Builder as Q
 import Data.Postgres.Raw (Raw)
 import Data.Postgres.Raw as Raw
-import Data.Postgres.Result (class FromResult)
+import Data.Postgres.Result (class FromRow)
 import Data.RFC3339String as DateTime.ISO
 import Data.String as String
 import Data.Time (Time(..))
@@ -48,11 +48,13 @@ foreign import readBigInt64BE :: Buffer -> Effect BigInt
 foreign import dbg :: forall a. a -> Effect Unit
 
 newtype GenSmallInt = GenSmallInt Int
+
 derive instance Newtype GenSmallInt _
 instance Arbitrary GenSmallInt where
   arbitrary = wrap <$> chooseInt (-32768) 32767
 
 newtype GenDateTime = GenDateTime DateTime
+
 derive instance Newtype GenDateTime _
 instance Arbitrary GenDateTime where
   arbitrary = do
@@ -69,6 +71,7 @@ instance Arbitrary GenDateTime where
     pure $ wrap $ DateTime date time
 
 newtype GenString = GenString String
+
 derive instance Newtype GenString _
 instance Arbitrary GenString where
   arbitrary = do
@@ -78,6 +81,7 @@ instance Arbitrary GenString where
     pure $ wrap $ fold chars'
 
 newtype GenSmallFloat = GenSmallFloat Number
+
 derive instance Newtype GenSmallFloat _
 instance Arbitrary GenSmallFloat where
   arbitrary = do
@@ -132,8 +136,8 @@ asRaw = Raw.unsafeFromForeign <<< unsafeToForeign
 spec :: Spec Unit
 spec =
   let
-    check :: forall @a @x. Show a => Arbitrary x => Rep a => FromResult a => String -> String -> (x -> a) -> (a -> Raw) -> (a -> a -> Boolean) -> SpecT Aff Client Identity Unit
-    check purs sql xa asRaw_ isEq =
+    check :: forall @a @x. Show a => Arbitrary x => Rep a => FromRow a => String -> String -> (x -> a) -> (a -> a -> Boolean) -> SpecT Aff Client Identity Unit
+    check purs sql xa isEq =
       it (purs <> " <> " <> sql) \c -> do
         let
           tab = String.replace (wrap " ") (wrap "_") $ String.replace (wrap "[") (wrap "") $ String.replace (wrap "]") (wrap "") $ sql <> "_is_" <> String.toLower purs
@@ -157,27 +161,24 @@ spec =
             act = unsafePartial fromJust $ Array.head res
           when (not $ isEq exp act) $ fail $ "expected " <> show exp <> " to equal " <> show act
 
-    check_ :: forall @a. Eq a => Show a => Arbitrary a => FromResult a => Rep a => String -> String -> SpecT Aff Client Identity Unit
-    check_ purs sql = check @a @a purs sql identity asRaw eq
-
-    dateTimeFromArbitrary :: Int -> DateTime
-    dateTimeFromArbitrary = Instant.toDateTime <<< unsafePartial fromJust <<< Instant.instant <<< wrap <<< Int.toNumber
+    check_ :: forall @a. Eq a => Show a => Arbitrary a => FromRow a => Rep a => String -> String -> SpecT Aff Client Identity Unit
+    check_ purs sql = check @a @a purs sql identity eq
   in
     around withClient
       $ describe "Data.Postgres"
       $ do
-          check @Int @GenSmallInt "Int" "int2" unwrap asRaw eq
+          check @Int @GenSmallInt "Int" "int2" unwrap eq
           check_ @Int "Int" "int4"
 
-          check @String @GenString "String" "text" unwrap asRaw eq
+          check @String @GenString "String" "text" unwrap eq
 
           check_ @Boolean "Boolean" "bool"
 
-          check @Number @GenSmallFloat "Number" "float4" unwrap asRaw (\a b -> Number.abs (a - b) <= 0.0001)
+          check @Number @GenSmallFloat "Number" "float4" unwrap (\a b -> Number.abs (a - b) <= 0.0001)
           check_ @Number "Number" "float8"
 
-          check @BigInt @GenBigInt "BigInt" "int8" unwrap (asRaw <<< BigInt.toString) eq
-          check @(Maybe String) @(Maybe GenString) "Maybe String" "text" (map unwrap) (maybe jsNull asRaw) eq
-          check @(Array String) @(Array GenString) "Array String" "text[]" (map unwrap) asRaw eq
-          check @DateTime @GenDateTime "DateTime" "timestamptz" unwrap (asRaw <<< DateTime.ISO.fromDateTime) eq
-          check @String @GenJSON "JSON" "json" (writeJSON <<< unwrap) asRaw eq
+          check @BigInt @GenBigInt "BigInt" "int8" unwrap eq
+          check @(Maybe String) @(Maybe GenString) "Maybe String" "text" (map unwrap) eq
+          check @(Array String) @(Array GenString) "Array String" "text[]" (map unwrap) eq
+          check @DateTime @GenDateTime "DateTime" "timestamptz" unwrap eq
+          check @String @GenJSON "JSON" "json" (writeJSON <<< unwrap) eq

@@ -1,5 +1,5 @@
 /** @type {(raw: unknown) => string} */
-export const rawToString = raw =>
+export const rawToDebugString = raw =>
   typeof raw === 'undefined'
     ? 'undefined'
     : typeof raw === 'string'
@@ -15,7 +15,7 @@ export const rawToString = raw =>
           : 'unknown'
 
 /** @type {(a: unknown) => (b: unknown) => boolean} */
-export const rawEq = a => b =>
+export const rawDebugEq = a => b =>
   typeof a === 'undefined' && typeof b === 'undefined'
     ? true
     : typeof a === typeof b &&
@@ -25,6 +25,6 @@ export const rawEq = a => b =>
         ? a === null && b === null
           ? true
           : a instanceof Array && b instanceof Array
-            ? a.every((a_, ix) => rawEq(a_)(b[ix]))
+            ? a.every((a_, ix) => rawDebugEq(a_)(b[ix]))
             : false
         : false

@@ -24,6 +24,7 @@ workspace:
         - nullable
         - precise-datetime
         - prelude
+        - profunctor
         - record
         - simple-json
         - transformers

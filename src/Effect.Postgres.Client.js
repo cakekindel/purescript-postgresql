@@ -2,11 +2,10 @@ import Pg from 'pg'
 
 /** @typedef {{statementTimeout: unknown, queryTimeout: unknown, idleInTransactionTimeout: unknown, connectionTimeout: unknown, applicationName: string}} ClientConfigExtra */
 
-/** @type {(_: {unwrapMillis: (_m: unknown) => number}) => (cfg: Pg.ClientConfig & ClientConfigExtra) => () => Pg.Client} */
-export const makeImpl =
+/** @type {(_o: {unwrapMillis: (ms: unknown) => number}) => (cfg: Pg.ClientConfig & ClientConfigExtra) => Pg.ClientConfig} */
+export const __uncfg =
   ({ unwrapMillis }) =>
-  cfg =>
-  () => {
+  cfg => {
     if ('statementTimeout' in cfg) {
       cfg.statement_timeout = unwrapMillis(cfg.statementTimeout)
     }
@@ -24,5 +23,8 @@ export const makeImpl =
     if ('applicationName' in cfg) {
       cfg.application_name = cfg.applicationName
     }
-    return new Pg.Client(cfg)
+    return cfg
   }
+
+/** @type {(cfg: Pg.ClientConfig) => () => Pg.Client} */
+export const __make = cfg => () => new Pg.Client(cfg)

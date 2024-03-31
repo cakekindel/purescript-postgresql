@@ -7,6 +7,7 @@ import Data.Newtype (unwrap)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Data.Postgres (modifyPgTypes)
+import Data.Profunctor (lcmap)
 import Data.Time.Duration (Milliseconds)
 import Effect (Effect)
 import Effect.Exception (Error)
@@ -18,21 +19,17 @@ import Prim.Row (class Union)
 import Record (modify)
 import Type.Prelude (Proxy(..))
 
+-- | Database connection
 foreign import data Client :: Type
-foreign import makeImpl :: { unwrapMillis :: Milliseconds -> Number } -> Foreign -> Effect Client
 
+-- | A notification raised by `NOTIFY`
 type Notification =
   { processId :: Number
   , channel :: String
   , payload :: Maybe String
   }
 
-type NotificationRaw =
-  { processId :: Number
-  , channel :: String
-  , payload :: Nullable String
-  }
-
+-- | Client connection config
 type Config r =
   ( user :: String
   , password :: String
@@ -48,23 +45,49 @@ type Config r =
   | r
   )
 
+-- | Creates a new client, not yet connected to the database.
+-- |
+-- | The config parameter `r` is `Config` with all keys optional.
+-- |
+-- | <https://node-postgres.com/apis/client#new-client>
 make :: forall r trash. Union r trash (Config ()) => Record r -> Effect Client
 make r = do
   modifyPgTypes
-  makeImpl { unwrapMillis: unwrap } $ unsafeToForeign r
+  __make $ __uncfg { unwrapMillis: unwrap } $ unsafeToForeign r
 
-error :: EventHandle1 Client Error
-error = EventHandle "end" mkEffectFn1
+-- | <https://node-postgres.com/apis/client#error>
+errorE :: EventHandle1 Client Error
+errorE = EventHandle "error" mkEffectFn1
 
-notice :: EventHandle1 Client Error
-notice = EventHandle "notice" mkEffectFn1
+-- | <https://node-postgres.com/apis/client#notice>
+noticeE :: EventHandle1 Client Error
+noticeE = EventHandle "notice" mkEffectFn1
 
-end :: EventHandle0 Client
-end = EventHandle "end" identity
+-- | <https://node-postgres.com/apis/client#end>
+endE :: EventHandle0 Client
+endE = EventHandle "end" identity
 
-notification :: EventHandle Client (Notification -> Effect Unit) (EffectFn1 NotificationRaw Unit)
-notification =
+-- | <https://node-postgres.com/apis/client#notification>
+notificationE :: EventHandle Client (Notification -> Effect Unit) (EffectFn1 NotificationRaw Unit)
+notificationE =
   let
     payload = Proxy @"payload"
+    payloadToMaybe = modify payload Nullable.toMaybe
   in
-    EventHandle "notification" (\f -> mkEffectFn1 $ f <<< modify payload Nullable.toMaybe)
+    EventHandle "notification" (mkEffectFn1 <<< lcmap payloadToMaybe)
+
+-- | FFI
+foreign import data ClientConfigRaw :: Type
+
+-- | FFI
+foreign import __make :: ClientConfigRaw -> Effect Client
+
+-- | FFI
+foreign import __uncfg :: { unwrapMillis :: Milliseconds -> Number } -> Foreign -> ClientConfigRaw
+
+-- | FFI
+type NotificationRaw =
+  { processId :: Number
+  , channel :: String
+  , payload :: Nullable String
+  }

@@ -13,7 +13,7 @@ import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Postgres.Raw (Raw)
-import Data.Postgres.Raw (unsafeFromForeign, unsafeToForeign) as Raw
+import Data.Postgres.Raw (unsafeFromForeign, asForeign) as Raw
 import Data.RFC3339String as DateTime.ISO
 import Data.Show.Generic (genericShow)
 import Data.Traversable (traverse)
@@ -141,7 +141,7 @@ instance Deserialize Unit where
 
 -- | `NULL` (fails if non-null)
 instance Deserialize Null where
-  deserialize = map (const Null) <<< F.readNullOrUndefined <<< Raw.unsafeToForeign
+  deserialize = map (const Null) <<< F.readNullOrUndefined <<< Raw.asForeign
 
 -- | `json`, `jsonb`
 instance ReadForeign a => Deserialize (JSON a) where
@@ -149,11 +149,11 @@ instance ReadForeign a => Deserialize (JSON a) where
 
 -- | `bytea`
 instance Deserialize Buffer where
-  deserialize = (F.unsafeReadTagged "Buffer") <<< Raw.unsafeToForeign
+  deserialize = (F.unsafeReadTagged "Buffer") <<< Raw.asForeign
 
 -- | `int2`, `int4`
 instance Deserialize Int where
-  deserialize = F.readInt <<< Raw.unsafeToForeign
+  deserialize = F.readInt <<< Raw.asForeign
 
 -- | `int8`
 instance Deserialize BigInt where
@@ -166,15 +166,15 @@ instance Deserialize BigInt where
 
 -- | `bool`
 instance Deserialize Boolean where
-  deserialize = F.readBoolean <<< Raw.unsafeToForeign
+  deserialize = F.readBoolean <<< Raw.asForeign
 
 -- | `text`, `inet`, `tsquery`, `tsvector`, `uuid`, `xml`, `cidr`, `time`, `timetz`
 instance Deserialize String where
-  deserialize = F.readString <<< Raw.unsafeToForeign
+  deserialize = F.readString <<< Raw.asForeign
 
 -- | `float4`, `float8`
 instance Deserialize Number where
-  deserialize = F.readNumber <<< Raw.unsafeToForeign
+  deserialize = F.readNumber <<< Raw.asForeign
 
 -- | `timestamp`, `timestamptz`
 instance Deserialize DateTime where
@@ -185,7 +185,7 @@ instance Deserialize DateTime where
 
 -- | postgres `array`
 instance Deserialize a => Deserialize (Array a) where
-  deserialize = traverse (deserialize <<< Raw.unsafeFromForeign) <=< F.readArray <<< Raw.unsafeToForeign
+  deserialize = traverse (deserialize <<< Raw.unsafeFromForeign) <=< F.readArray <<< Raw.asForeign
 
 -- | non-NULL -> `Just`, NULL -> `Nothing`
 instance Deserialize a => Deserialize (Maybe a) where
