@@ -6,14 +6,17 @@ import Data.Either (Either(..))
 import Data.String.Regex (Regex)
 import Data.String.Regex as Regex
 import Data.String.Regex.Flags (RegexFlags(..))
+import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
-import Effect.Aff (Aff, bracket)
+import Effect.Aff (Aff, bracket, makeAff)
 import Effect.Aff.Postgres.Client (Client)
 import Effect.Aff.Postgres.Client as Client
 import Effect.Aff.Postgres.Pool (Pool)
 import Effect.Aff.Postgres.Pool as Pool
 import Effect.Class (liftEffect)
 import Effect.Unsafe (unsafePerformEffect)
+import Node.EventEmitter (EventHandle(..))
+import Node.EventEmitter as EE
 import Node.Path as Path
 import Node.Process (cwd)
 import Partial.Unsafe (unsafePartial)
@@ -54,3 +57,21 @@ unsafeFromRight e = unsafePartial $ case e of Right b -> b
 
 re :: String -> RegexFlags -> Regex
 re s f = unsafeFromRight $ Regex.regex s f
+
+class Curried a b | a -> b where
+  curried :: (b -> Effect Unit) -> a
+
+instance Curried (Effect Unit) Unit where
+  curried f = f unit
+
+instance Curried (a -> Effect Unit) a where
+  curried = identity
+
+instance Curried (a -> b -> Effect Unit) (a /\ b) where
+  curried f = \a b -> f $ a /\ b
+
+instance Curried (a -> b -> c -> Effect Unit) (a /\ b /\ c) where
+  curried f = \a b c -> f $ a /\ b /\ c
+
+onceAff :: forall psCb jsCb emitter r. Curried psCb r => EventHandle emitter psCb jsCb -> emitter -> Aff r
+onceAff ev em = makeAff \res -> mempty <* EE.once ev (curried (res <<< Right)) em

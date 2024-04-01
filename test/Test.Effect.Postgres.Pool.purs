@@ -7,8 +7,7 @@ import Effect.Aff (finally, forkAff, joinFiber)
 import Effect.Aff.Postgres.Client as Client
 import Effect.Aff.Postgres.Pool as Pool
 import Effect.Class (liftEffect)
-import Test.Common (config, withPool)
-import Test.Event (onceAff)
+import Test.Common (config, onceAff, withPool)
 import Test.Spec (Spec, around, describe, it)
 import Test.Spec.Assertions (expectError, shouldEqual)
 

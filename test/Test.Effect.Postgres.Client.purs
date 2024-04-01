@@ -12,8 +12,7 @@ import Effect.Aff (forkAff, joinFiber)
 import Effect.Aff.Postgres.Client (query)
 import Effect.Aff.Postgres.Client as Client
 import Effect.Exception as Error
-import Test.Common (withClient)
-import Test.Event (onceAff)
+import Test.Common (onceAff, withClient)
 import Test.Spec (Spec, around, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 
@@ -60,4 +59,4 @@ spec =
         describe "json" do
           it "unmarshals" \c -> shouldEqual (JSON { foo: "bar" }) =<< query "select '{\"foo\": \"bar\"}' :: json" c
           it "is string" \c -> shouldEqual "{\"foo\": \"bar\"}" =<< query "select '{\"foo\": \"bar\"}' :: json" c
-          it "array is string" \c -> shouldEqual [ [ "{\"foo\": \"bar\"}" ] ] =<< query "select array['{\"foo\": \"bar\"}' :: json]" c
+          it "array is string" \c -> shouldEqual [["{\"foo\": \"bar\"}"]] =<< query "select array['{\"foo\": \"bar\"}' :: json]" c

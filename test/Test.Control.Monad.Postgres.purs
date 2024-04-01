@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Fork.Class (class MonadBracket, bracket)
-import Control.Monad.Postgres (PoolT, exec_, query, runPool, session, transaction)
+import Control.Monad.Postgres (PostgresT, exec_, query, runPostgres, session, transaction)
 import Data.Array as Array
 import Data.Array.NonEmpty as Array.NonEmpty
 import Data.Maybe (fromJust, maybe)
@@ -18,7 +18,7 @@ import Test.Common (re, withConfig)
 import Test.Spec (Spec, around, describe, it)
 import Test.Spec.Assertions (expectError, shouldEqual)
 
-withTable :: forall a m. MonadBracket Error Fiber m => MonadAff m => String -> PoolT m a -> PoolT m a
+withTable :: forall a m. MonadBracket Error Fiber m => MonadAff m => String -> PostgresT m a -> PostgresT m a
 withTable s m =
   let
     tabname = unsafePartial fromJust $ join $ Array.index (maybe [] Array.NonEmpty.toArray $ Regex.match (re "create table (\\w+)" Regex.Flag.ignoreCase) s) 1
@@ -28,21 +28,21 @@ withTable s m =
 spec :: Spec Unit
 spec =
   around withConfig $ describe "Control.Monad.Postgres" do
-    it "empty works" \cfg -> runPool cfg $ pure unit
-    it "connects" \cfg -> runPool cfg do
+    it "empty works" \cfg -> runPostgres cfg $ pure unit
+    it "connects" \cfg -> runPostgres cfg do
       act <- session $ query "select 1"
       act `shouldEqual` 1
-    it "connects multiple" \cfg -> runPool cfg do
+    it "connects multiple" \cfg -> runPostgres cfg do
       a <- session $ query "select 1"
       b <- session $ query "select 2"
       a `shouldEqual` 1
       b `shouldEqual` 2
-    it "transaction commits" \cfg -> runPool cfg do
+    it "transaction commits" \cfg -> runPostgres cfg do
       withTable "create table test_txn_commits (id int);" do
         transaction $ exec_ "insert into test_txn_commits values (1);"
         act <- session $ query "select * from test_txn_commits"
         act `shouldEqual` [ 1 ]
-    it "transaction rolls back" \cfg -> runPool cfg do
+    it "transaction rolls back" \cfg -> runPostgres cfg do
       withTable "create table test_txn_rolls_back (id int);" do
         expectError $ transaction do
           exec_ "insert into test_txn_rolls_back values (1);"
