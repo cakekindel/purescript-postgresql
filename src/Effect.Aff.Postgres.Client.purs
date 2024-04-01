@@ -22,8 +22,8 @@ import Prim.Row (class Union)
 -- | The config parameter `r` is `Config` with all keys optional.
 -- |
 -- | This is a shorthand for `(voidRight <*> connect) =<< liftEffect (make cfg)`
-connected :: forall r trash. Union r trash (Config ()) => Record r -> Aff Client
-connected cfg = (voidRight <*> connect) =<< liftEffect (make cfg)
+connected :: forall r missing trash. Union r missing (Config trash) => Record r -> Aff Client
+connected cfg = (voidRight <*> connect) =<< liftEffect (make @r @missing @trash cfg)
 
 -- | Connects the client to the database
 -- |

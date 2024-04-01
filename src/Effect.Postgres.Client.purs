@@ -50,7 +50,7 @@ type Config r =
 -- | The config parameter `r` is `Config` with all keys optional.
 -- |
 -- | <https://node-postgres.com/apis/client#new-client>
-make :: forall r trash. Union r trash (Config ()) => Record r -> Effect Client
+make :: forall @r @missing @trash. Union r missing (Config trash) => Record r -> Effect Client
 make r = do
   modifyPgTypes
   __make $ __uncfg { unwrapMillis: unwrap } $ unsafeToForeign r

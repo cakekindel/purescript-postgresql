@@ -22,6 +22,7 @@ import Node.Encoding (Encoding(..))
 import Node.EventEmitter as Event
 import Test.Data.Postgres as Test.Data.Postgres
 import Test.Effect.Postgres.Client as Test.Effect.Postgres.Client
+import Test.Effect.Postgres.Pool as Test.Effect.Postgres.Pool
 import Test.Spec.Reporter (specReporter)
 import Test.Spec.Runner (runSpec)
 
@@ -62,3 +63,4 @@ main = launchAff_ do
     $ runSpec [ specReporter ] do
         Test.Data.Postgres.spec
         Test.Effect.Postgres.Client.spec
+        Test.Effect.Postgres.Pool.spec

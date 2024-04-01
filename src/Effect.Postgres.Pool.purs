@@ -2,12 +2,8 @@ module Effect.Postgres.Pool where
 
 import Prelude
 
-import Data.Maybe (Maybe)
 import Data.Newtype (unwrap)
-import Data.Nullable (Nullable)
-import Data.Nullable as Nullable
 import Data.Postgres (modifyPgTypes)
-import Data.Profunctor (lcmap)
 import Data.Time.Duration (Milliseconds)
 import Effect (Effect)
 import Effect.Exception (Error)
@@ -43,19 +39,19 @@ foreign import clientWaitingCount :: Pool -> Int
 -- | The config parameter `r` is `Config` with all keys optional.
 -- |
 -- | <https://node-postgres.com/apis/pool#new-pool>
-make :: forall r omitted. Union r omitted (Config ()) => Record r -> Effect Pool
+make :: forall r missing trash. Union r missing (Config trash) => Record r -> Effect Pool
 make r = do
   modifyPgTypes
   let asClientConfig = Client.__uncfg { unwrapMillis: unwrap } $ unsafeToForeign r
   __make $ __uncfg { unwrapMillis: unwrap } $ unsafeToForeign asClientConfig
 
 -- | <https://node-postgres.com/apis/pool#releasing-clients>
-releaseClient :: Pool -> Client -> Effect Unit
-releaseClient p c = __release p c false
+release :: Pool -> Client -> Effect Unit
+release p c = __release p c false
 
 -- | <https://node-postgres.com/apis/pool#releasing-clients>
-destroyClient :: Pool -> Client -> Effect Unit
-destroyClient p c = __release p c true
+destroy :: Pool -> Client -> Effect Unit
+destroy p c = __release p c true
 
 -- | <https://node-postgres.com/apis/pool#connect>
 connectE :: EventHandle1 Pool Client
@@ -74,8 +70,8 @@ removeE :: EventHandle1 Pool Client
 removeE = EventHandle "remove" mkEffectFn1
 
 -- | <https://node-postgres.com/apis/pool#release>
-releaseE :: EventHandle Pool (Maybe Error -> Client -> Effect Unit) (EffectFn2 (Nullable Error) Client Unit)
-releaseE = EventHandle "release" (mkEffectFn2 <<< lcmap Nullable.toMaybe)
+releaseE :: EventHandle Pool (Client -> Effect Unit) (EffectFn2 Foreign Client Unit)
+releaseE = EventHandle "release" (mkEffectFn2 <<< const)
 
 -- | FFI type for `import('pg').PoolConfig`
 foreign import data PoolConfigRaw :: Type
