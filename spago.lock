@@ -13,6 +13,7 @@ workspace:
         - exceptions
         - foldable-traversable
         - foreign
+        - fork
         - integers
         - js-bigints
         - lists

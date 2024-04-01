@@ -8,13 +8,12 @@ import Data.Functor (voidRight)
 import Data.Maybe (fromMaybe)
 import Data.Postgres (smash)
 import Data.Postgres.Query (class AsQuery, QueryRaw, asQuery, __queryToRaw)
-import Data.Postgres.Result (class FromRow, Result, fromRow, rows, rowsAffected)
-import Data.Traversable (traverse)
+import Data.Postgres.Result (class FromRows, Result, fromRows, rows, rowsAffected)
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Postgres.Client (Client, Config, make)
-import Effect.Postgres.Client as X
+import Effect.Postgres.Client (Client, ClientConfigRaw, Config, Notification, NotificationRaw, __make, __uncfg, endE, errorE, make, noticeE, notificationE) as X
 import Prim.Row (class Union)
 
 -- | Create a client and immediately connect it to the database
@@ -56,8 +55,8 @@ exec q = map (fromMaybe 0 <<< rowsAffected) <<< queryRaw q
 -- | returning them unmarshalled into destination type `r`.
 -- |
 -- | <https://node-postgres.com/apis/client#clientquery>
-query :: forall q r. AsQuery q => FromRow r => q -> Client -> Aff (Array r)
-query q = traverse (liftEffect <<< smash <<< fromRow) <=< map rows <<< queryRaw q
+query :: forall q r. AsQuery q => FromRows r => q -> Client -> Aff r
+query q = (liftEffect <<< smash <<< fromRows) <=< map rows <<< queryRaw q
 
 -- | FFI binding to `Client#connect`
 foreign import __connect :: Client -> Effect (Promise Unit)

@@ -3,18 +3,15 @@ module Test.Effect.Postgres.Client where
 import Prelude
 
 import Control.Monad.Error.Class (try)
-import Data.Either (Either(..), isLeft)
+import Data.Either (Either, isLeft)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap)
 import Data.Postgres (JSON(..))
 import Data.PreciseDateTime (fromRFC3339String, toDateTimeLossy)
-import Effect (Effect)
-import Effect.Aff (Aff, forkAff, joinFiber, makeAff)
+import Effect.Aff (forkAff, joinFiber)
 import Effect.Aff.Postgres.Client (query)
 import Effect.Aff.Postgres.Client as Client
 import Effect.Exception as Error
-import Effect.Uncurried (EffectFn1)
-import Node.EventEmitter (EventHandle, once)
 import Test.Common (withClient)
 import Test.Event (onceAff)
 import Test.Spec (Spec, around, describe, it)
@@ -57,10 +54,10 @@ spec =
         describe "timestamp" do
           it "unmarshals" \c -> do
             let exp = toDateTimeLossy <$> fromRFC3339String (wrap "2020-01-01T00:00:00Z")
-            shouldEqual [ exp ] =<< query "select '2020-01-01T00:00:00Z' :: timestamptz" c
-          it "is string" \c -> shouldEqual [ "2020-01-01 00:00:00+00" ] =<< query "select '2020-01-01T00:00:00Z' :: timestamptz" c
+            shouldEqual exp =<< query "select '2020-01-01T00:00:00Z' :: timestamptz" c
+          it "is string" \c -> shouldEqual "2020-01-01 00:00:00+00" =<< query "select '2020-01-01T00:00:00Z' :: timestamptz" c
           it "array is string" \c -> shouldEqual [ [ "2020-01-01 00:00:00+00" ] ] =<< query "select array['2020-01-01T00:00:00Z' :: timestamptz]" c
         describe "json" do
-          it "unmarshals" \c -> shouldEqual [ JSON { foo: "bar" } ] =<< query "select '{\"foo\": \"bar\"}' :: json" c
-          it "is string" \c -> shouldEqual [ "{\"foo\": \"bar\"}" ] =<< query "select '{\"foo\": \"bar\"}' :: json" c
+          it "unmarshals" \c -> shouldEqual (JSON { foo: "bar" }) =<< query "select '{\"foo\": \"bar\"}' :: json" c
+          it "is string" \c -> shouldEqual "{\"foo\": \"bar\"}" =<< query "select '{\"foo\": \"bar\"}' :: json" c
           it "array is string" \c -> shouldEqual [ [ "{\"foo\": \"bar\"}" ] ] =<< query "select array['{\"foo\": \"bar\"}' :: json]" c

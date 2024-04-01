@@ -10,6 +10,7 @@ import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Data.Postgres (class Rep, RepT, deserialize)
 import Data.Postgres.Raw (Raw)
+import Data.Traversable (traverse)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested (type (/\), (/\))
 import Foreign (ForeignError(..))
@@ -25,6 +26,18 @@ foreign import data Result :: Type
 -- | <https://node-postgres.com/apis/result#resultrowcount-int--null>
 rowsAffected :: Result -> Maybe Int
 rowsAffected = Int.fromNumber <=< Nullable.toMaybe <<< __rowsAffected
+
+class FromRows a where
+  fromRows :: Array (Array Raw) -> RepT a
+
+instance (FromRow a) => FromRows (Array a) where
+  fromRows = traverse fromRow
+else instance (FromRow a) => FromRows a where
+  fromRows =
+    let
+      e = pure $ ForeignError $ "Expected at least 1 row"
+    in
+      liftMaybe e <=< map Array.head <<< traverse fromRow
 
 -- | Can be unmarshalled from a queried row
 -- |

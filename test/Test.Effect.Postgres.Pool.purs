@@ -73,7 +73,7 @@ spec = describe "Pool" do
     it "connect" \p -> do
       c <- Pool.connect p
       let rel = liftEffect $ Pool.release p c
-      finally rel $ shouldEqual [ 1 ] =<< Client.query "select 1" c
+      finally rel $ shouldEqual 1 =<< Client.query "select 1" c
     describe "destroy" do
       it "throws on query after destroy" \p -> do
         c <- Pool.connect p

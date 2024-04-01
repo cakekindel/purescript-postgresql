@@ -20,6 +20,7 @@ import Node.ChildProcess.Aff as ChildProcess.Aff
 import Node.ChildProcess.Types (Exit(..), stringSignal)
 import Node.Encoding (Encoding(..))
 import Node.EventEmitter as Event
+import Test.Control.Monad.Postgres as Test.Control.Monad.Postgres
 import Test.Data.Postgres as Test.Data.Postgres
 import Test.Effect.Postgres.Client as Test.Effect.Postgres.Client
 import Test.Effect.Postgres.Pool as Test.Effect.Postgres.Pool
@@ -64,3 +65,4 @@ main = launchAff_ do
         Test.Data.Postgres.spec
         Test.Effect.Postgres.Client.spec
         Test.Effect.Postgres.Pool.spec
+        Test.Control.Monad.Postgres.spec

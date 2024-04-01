@@ -39,7 +39,7 @@ foreign import clientWaitingCount :: Pool -> Int
 -- | The config parameter `r` is `Config` with all keys optional.
 -- |
 -- | <https://node-postgres.com/apis/pool#new-pool>
-make :: forall r missing trash. Union r missing (Config trash) => Record r -> Effect Pool
+make :: forall @r @missing @trash. Union r missing (Config trash) => Record r -> Effect Pool
 make r = do
   modifyPgTypes
   let asClientConfig = Client.__uncfg { unwrapMillis: unwrap } $ unsafeToForeign r
