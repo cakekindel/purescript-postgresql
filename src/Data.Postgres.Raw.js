@@ -28,3 +28,8 @@ export const rawDebugEq = a => b =>
             ? a.every((a_, ix) => rawDebugEq(a_)(b[ix]))
             : false
         : false
+
+export const jsNull = null
+
+/** @type {(a: unknown) => a is null} */
+export const isNull = a => a === null

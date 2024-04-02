@@ -1,8 +1,6 @@
 import Pg from 'pg'
 import Range from 'postgres-range'
 
-export const jsNull = null
-
 export const modifyPgTypes = () => {
   // https://github.com/brianc/node-pg-types/blob/master/lib/textParsers.js
   const oid = {

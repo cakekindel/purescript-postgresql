@@ -3,16 +3,17 @@ module Data.Postgres.Range where
 import Prelude
 
 import Control.Alt ((<|>))
-import Control.Monad.Trans.Class (lift)
+import Data.Array as Array
+import Data.Foldable (class Foldable, foldl)
+import Data.FoldableWithIndex (foldMapDefault)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype, unwrap)
-import Data.Postgres (class Deserialize, class Rep, class Serialize, RepT, deserialize, serialize, smash)
-import Data.Postgres.Raw (Raw)
-import Data.Postgres.Raw as Raw
+import Data.Postgres.Raw (Raw, rawMaybeNull, rawNullMaybe)
 import Data.Show.Generic (genericShow)
+import Data.Traversable (class Traversable, foldMapDefaultL, foldrDefault, sequenceDefault, traverse)
 import Effect (Effect)
-import Foreign (unsafeToForeign)
+import Foreign.Object (foldMap)
 
 -- | A range of values with optional upper & lower bounds.
 -- |
@@ -22,17 +23,26 @@ import Foreign (unsafeToForeign)
 -- | * `gte 1 <> lt 2 -> '[1,2)'`
 newtype Range a = Range { upper :: Maybe (Bound a), lower :: Maybe (Bound a) }
 
+derive instance Functor Range
+instance Foldable Range where
+  foldl f b r = foldl f b $ boundValue <$> Array.catMaybes [ upper r, lower r ]
+  foldr f b r = foldrDefault f b r
+  foldMap f r = foldMapDefaultL f r
+
+instance Traversable Range where
+  traverse f r =
+    let
+      build u l = Range { upper: u, lower: l }
+      fToBound = traverse (traverse f)
+    in
+      pure build <*> fToBound (upper r) <*> fToBound (lower r)
+  sequence = sequenceDefault
+
 derive instance Generic (Range a) _
 derive instance Newtype (Range a) _
 derive instance Eq a => Eq (Range a)
 instance Show a => Show (Range a) where
   show = genericShow
-
-instance (Ord a, Rep a) => Serialize (Range a) where
-  serialize = map (Raw.unsafeFromForeign <<< unsafeToForeign <<< __rangeRawFromRecord) <<< __rangeToRecord
-
-instance (Ord a, Rep a) => Deserialize (Range a) where
-  deserialize = __rangeFromRecord <=< map __rangeRawToRecord <<< lift <<< __rangeRawFromRaw
 
 instance Monoid (Range a) where
   mempty = Range { upper: Nothing, lower: Nothing }
@@ -43,6 +53,18 @@ instance Semigroup (Range a) where
 -- | An upper or lower range bound
 data Bound a = BoundIncl a | BoundExcl a
 
+instance Foldable Bound where
+  foldl f b (BoundIncl a) = f b a
+  foldl f b (BoundExcl a) = f b a
+  foldr f b a = foldrDefault f b a
+  foldMap f r = foldMapDefaultL f r
+
+instance Traversable Bound where
+  traverse f (BoundIncl a) = BoundIncl <$> f a
+  traverse f (BoundExcl a) = BoundExcl <$> f a
+  sequence = sequenceDefault
+
+derive instance Functor Bound
 derive instance Generic (Bound a) _
 derive instance Eq a => Eq (Bound a)
 instance Show a => Show (Bound a) where
@@ -72,18 +94,6 @@ makeBound :: forall a. Boolean -> a -> Bound a
 makeBound i a
   | i = BoundIncl a
   | otherwise = BoundExcl a
-
--- | Attempt to parse a SQL string of a range as `Range a`
-parseSQL :: forall a. Rep a => (String -> RepT a) -> String -> RepT (Range a)
-parseSQL fromString sql = do
-  range <- lift $ __rangeRawParse sql $ smash <<< (serialize <=< fromString)
-  __rangeFromRecord $ __rangeRawToRecord range
-
--- | Serialize a `Range` as a SQL string
-printSQL :: forall a. Rep a => Range a -> RepT String
-printSQL range = do
-  record <- __rangeToRecord range
-  lift $ __rangeRawSerialize $ __rangeRawFromRecord record
 
 -- | Returns whether the range contains value `a`
 contains :: forall a. Ord a => a -> Range a -> Boolean
@@ -133,16 +143,9 @@ foreign import __rangeRawParse :: String -> (String -> Effect Raw) -> Effect Ran
 foreign import __rangeRawSerialize :: RangeRaw -> Effect String
 
 -- | FFI
-__rangeFromRecord :: forall a. Deserialize a => RangeRecord -> RepT (Range a)
-__rangeFromRecord raw = do
-  upper' :: Maybe a <- deserialize raw.upper
-  lower' :: Maybe a <- deserialize raw.lower
-  pure $ Range { upper: makeBound raw.upperIncl <$> upper', lower: makeBound raw.lowerIncl <$> lower' }
+__rangeFromRecord :: RangeRecord -> Range Raw
+__rangeFromRecord raw = Range { upper: makeBound raw.upperIncl <$> rawNullMaybe raw.upper, lower: makeBound raw.lowerIncl <$> rawNullMaybe raw.lower }
 
 -- | FFI
-__rangeToRecord :: forall a. Serialize a => Range a -> RepT RangeRecord
-__rangeToRecord r = do
-  upper' <- serialize $ boundValue <$> upper r
-  lower' <- serialize $ boundValue <$> lower r
-  pure $ { upper: upper', lower: lower', upperIncl: fromMaybe false $ boundIsInclusive <$> upper r, lowerIncl: fromMaybe false $ boundIsInclusive <$> lower r }
-
+__rangeToRecord :: Range Raw -> RangeRecord
+__rangeToRecord r = { upper: rawMaybeNull $ boundValue <$> upper r, lower: rawMaybeNull $ boundValue <$> lower r, upperIncl: fromMaybe false $ boundIsInclusive <$> upper r, lowerIncl: fromMaybe false $ boundIsInclusive <$> lower r }

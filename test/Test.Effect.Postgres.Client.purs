@@ -59,4 +59,4 @@ spec =
         describe "json" do
           it "unmarshals" \c -> shouldEqual (JSON { foo: "bar" }) =<< query "select '{\"foo\": \"bar\"}' :: json" c
           it "is string" \c -> shouldEqual "{\"foo\": \"bar\"}" =<< query "select '{\"foo\": \"bar\"}' :: json" c
-          it "array is string" \c -> shouldEqual [["{\"foo\": \"bar\"}"]] =<< query "select array['{\"foo\": \"bar\"}' :: json]" c
+          it "array is string" \c -> shouldEqual [ [ "{\"foo\": \"bar\"}" ] ] =<< query "select array['{\"foo\": \"bar\"}' :: json]" c

@@ -16,9 +16,9 @@ import Data.Int as Int
 import Data.Maybe (Maybe(..), fromJust, maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Number (abs) as Number
-import Data.Postgres (class Rep, jsNull)
+import Data.Postgres (class Rep)
 import Data.Postgres.Query.Builder as Q
-import Data.Postgres.Raw (Raw)
+import Data.Postgres.Raw (Raw, jsNull)
 import Data.Postgres.Raw as Raw
 import Data.Postgres.Result (class FromRow)
 import Data.RFC3339String as DateTime.ISO

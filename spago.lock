@@ -10,9 +10,11 @@ workspace:
         - control
         - datetime
         - effect
+        - either
         - exceptions
         - foldable-traversable
         - foreign
+        - foreign-object
         - fork
         - integers
         - js-bigints
@@ -23,11 +25,14 @@ workspace:
         - node-buffer
         - node-event-emitter
         - nullable
+        - parallel
+        - partial
         - precise-datetime
         - prelude
         - profunctor
         - record
         - simple-json
+        - strings
         - transformers
         - tuples
         - typelevel-prelude
