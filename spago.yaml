@@ -5,7 +5,7 @@ package:
     license: 'GPL-3.0-or-later'
     location:
       githubOwner: 'cakekindel'
-      githubRepo: 'puresript-postgresql'
+      githubRepo: 'purescript-postgresql'
   build:
     censorProjectWarnings:
       - 'ImplicitQualifiedImport'
