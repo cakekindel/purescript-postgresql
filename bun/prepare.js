@@ -23,7 +23,7 @@ const readmenew = readme.replace(/packages\/purescript-postgresql\/.+?\//g, `/pa
 await writeFile('./README.md', readmenew)
 
 execSync(`git add spago.yaml package.json README.md`)
-execSync(`git commit -m 'chore: prepare ${ver}'`)
-execSync(`git tag ${ver}`)
+execSync(`git commit -m 'chore: prepare v${ver}'`)
+execSync(`git tag v${ver}`)
 execSync(`git push --tags`)
 execSync(`git push --mirror github-mirror`)
