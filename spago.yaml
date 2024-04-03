@@ -1,5 +1,10 @@
 package:
   name: pg
+  publish:
+    version: '1.0.0'
+    license: 'GPL-3.0-or-later'
+    location:
+      url: https://git.orionkindel.com/orion/purescript-pg.git
   build:
     censorProjectWarnings:
       - 'ImplicitQualifiedImport'
