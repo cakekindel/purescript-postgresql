@@ -5,14 +5,14 @@ Purescript PostgreSQL driver
 ## Table of Contents
  - [Getting Started](#getting-started)
  - [Data](#data)
-   - [Rows](#data-rows)
-   - [Ranges](#data-ranges)
+   - [Rows](#data---rows)
+   - [Ranges](#data---ranges)
  - [Queries](#queries)
-   - [Builder](#queries-builder)
+   - [Builder](#queries---builder)
  - [Monads](#monads)
-   - [`PostgresT`](#monads-postgrest)
-   - [`SessionT`](#monads-sessiont)
-   - [`CursorT`](#monads-cursort)
+   - [`PostgresT`](#monads---postgrest)
+   - [`SessionT`](#monads---sessiont)
+   - [`CursorT`](#monads---cursort)
  - [`node-postgres` style](#node-postgres-style)
 
 ## Getting Started
