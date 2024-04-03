@@ -122,10 +122,10 @@ Postgres ranges are represented with [`Range`].
 
 [`Range`]s can be created with:
  - `mempty` - an unbounded range
- - [`Range.lt a`] - `(,a)`
- - [`Range.lte a`] - `(,a]`
- - [`Range.gt a`] - `(a,)`
- - [`Range.gte a`] - `[a,)`
+ - [`Range.lt`]` a` - `(,a)`
+ - [`Range.lte`]` a` - `(,a]`
+ - [`Range.gt`]` a` - `(a,)`
+ - [`Range.gte`]` a` - `[a,)`
 
 and combined with `append`:
 ```purescript
@@ -255,55 +255,59 @@ the api of [`node-postgres`]:
   - release clients with [`Pool.release`] or [`Pool.destroy`]
   - release with [`Pool.end`]
 
-[`Pool`]: ./docs/Effect.Aff.Postgres.Pool#t:Pool
-[`Config`]: ./docs/Effect.Aff.Postgres.Pool#t:Config
-[`Pool.make`]: ./docs/Effect.Aff.Postgres.Pool#v:make
-[`Pool.end`]: ./docs/Effect.Aff.Postgres.Pool#v:end
-[`Pool.connect`]: ./docs/Effect.Aff.Postgres.Pool#v:connect
-[`Pool.destroy`]: ./docs/Effect.Aff.Postgres.Pool#v:destroy
-[`Pool.release`]: ./docs/Effect.Aff.Postgres.Pool#v:release
+[`Pool`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Pool#t:Pool
+[`Config`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Pool#t:Config
+[`Pool.make`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Pool#v:make
+[`Pool.end`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Pool#v:end
+[`Pool.connect`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Pool#v:connect
+[`Pool.destroy`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Pool#v:destroy
+[`Pool.release`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Pool#v:release
 
-[`Client`]: ./docs/Effect.Aff.Postgres.Client#t:Client
-[`Client.end`]: ./docs/Effect.Aff.Postgres.Client#v:end
-[`Client.make`]: ./docs/Effect.Aff.Postgres.Client#v:make
-[`Client.connected`]: ./docs/Effect.Aff.Postgres.Client#v:connected
-[`Client.query`]: ./docs/Effect.Aff.Postgres.Client#v:query
-[`Client.queryRaw`]: ./docs/Effect.Aff.Postgres.Client#v:queryRaw
-[`Client.exec`]: ./docs/Effect.Aff.Postgres.Client#v:exec
+[`Client`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Client#t:Client
+[`Client.end`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Client#v:end
+[`Client.make`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Client#v:make
+[`Client.connected`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Client#v:connected
+[`Client.query`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Client#v:query
+[`Client.queryRaw`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Client#v:queryRaw
+[`Client.exec`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Effect.Aff.Postgres.Client#v:exec
 
-[`Range`]: ./docs/Data.Postgres.Range#t:Range
+[`Range`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Range#t:Range
+[`Range.gt`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Range#v:gt
+[`Range.gte`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Range#v:gte
+[`Range.lt`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Range#v:lt
+[`Range.lte`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Range#v:lte
 
-[`Raw`]: ./docs/Data.Postgres.Raw#t:Raw
-[`Null`]: ./docs/Data.Postgres.Raw#t:Null
+[`Raw`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Raw#t:Raw
+[`Null`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Raw#t:Null
 
-[`Serialize`]: ./docs/Data.Postgres#t:Serialize
-[`Deserialize`]: ./docs/Data.Postgres#t:Deserialize
-[`Rep`]: ./docs/Data.Postgres#t:Rep
-[`modifyPgTypes`]: ./docs/Data.Postgres#v:modifyPgTypes
+[`Serialize`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres#t:Serialize
+[`Deserialize`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres#t:Deserialize
+[`Rep`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres#t:Rep
+[`modifyPgTypes`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres#v:modifyPgTypes
 
-[`Result`]: ./docs/Data.Postgres.Result#t:Result
-[`FromRow`]: ./docs/Data.Postgres.Result#t:FromRow
-[`FromRows`]: ./docs/Data.Postgres.Result#t:FromRows
+[`Result`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Result#t:Result
+[`FromRow`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Result#t:FromRow
+[`FromRows`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Result#t:FromRows
 
-[`Query`]: ./docs/Data.Postgres.Query#t:Query
-[`AsQuery`]: ./docs/Data.Postgres.Query#t:AsQuery
+[`Query`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Query#t:Query
+[`AsQuery`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Query#t:AsQuery
 
-[`Query.Builder`]: ./docs/Data.Postgres.Query.Builder#t:Builder
-[`Query.Builder.param`]: ./docs/Data.Postgres.Query.Builder#v:param
-[`Query.Builder.build`]: ./docs/Data.Postgres.Query.Builder#v:build
+[`Query.Builder`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Query.Builder#t:Builder
+[`Query.Builder.param`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Query.Builder#v:param
+[`Query.Builder.build`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Data.Postgres.Query.Builder#v:build
 
-[`MonadCursor`]: ./docs/Control.Monad.Postgres#t:MonadCursor
-[`MonadSession`]: ./docs/Control.Monad.Postgres#t:MonadSession
-[`CursorT`]: ./docs/Control.Monad.Postgres#t:CursorT
-[`SessionT`]: ./docs/Control.Monad.Postgres#t:SessionT
-[`PostgresT`]: ./docs/Control.Monad.Postgres#t:PostgresT
-[`cursor`]: ./docs/Control.Monad.Postgres#v:cursor
-[`session`]: ./docs/Control.Monad.Postgres#v:session
-[`transaction`]: ./docs/Control.Monad.Postgres#v:transaction
-[`runPostgres`]: ./docs/Control.Monad.Postgres#v:runPostgres
-[`query`]: ./docs/Control.Monad.Postgres#v:query
-[`exec`]: ./docs/Control.Monad.Postgres#v:exec
-[`exec_`]: ./docs/Control.Monad.Postgres#v:exec_
+[`MonadCursor`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Control.Monad.Postgres#t:MonadCursor
+[`MonadSession`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Control.Monad.Postgres#t:MonadSession
+[`CursorT`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Control.Monad.Postgres#t:CursorT
+[`SessionT`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Control.Monad.Postgres#t:SessionT
+[`PostgresT`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Control.Monad.Postgres#t:PostgresT
+[`cursor`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Control.Monad.Postgres#v:cursor
+[`session`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Control.Monad.Postgres#v:session
+[`transaction`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Control.Monad.Postgres#v:transaction
+[`runPostgres`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Control.Monad.Postgres#v:runPostgres
+[`query`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Control.Monad.Postgres#v:query
+[`exec`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Control.Monad.Postgres#v:exec
+[`exec_`]: https://pursuit.purescript.org/packages/postgresql/1.0.1/docs/Control.Monad.Postgres#v:exec_
 
 [`node-postgres`]: https://node-postgres.com/
 [`pg-types`]: https://github.com/brianc/node-pg-types/
