@@ -110,6 +110,12 @@ transaction m =
   in
     session $ begin *> catchError commit rollback
 
+-- | Execute a `PostgresT` using an existing connection pool.
+-- |
+-- | This will not invoke `Pool.end` after executing.
+withPool :: forall m a. PostgresT m a -> Pool -> m a
+withPool = runReaderT <<< unwrap
+
 -- | Create a new connection pool from the provided config and execute
 -- | the postgres monad, invoking `Effect.Aff.Postgres.Pool.end` afterwards.
 runPostgres :: forall m a missing trash r e f. MonadBracket e f m => MonadAff m => Union r missing (Pool.Config trash) => Record r -> PostgresT m a -> m a
@@ -118,4 +124,4 @@ runPostgres cfg m =
     acq = liftEffect $ Pool.make @r @missing @trash cfg
     rel _ p = liftAff $ Pool.end p
   in
-    bracket acq rel $ runReaderT $ unwrap m
+    bracket acq rel $ withPool m
