@@ -20,6 +20,8 @@ const readme = await readFile('./README.md', 'utf8')
 const readmenew = readme.replace(/packages\/postgresql\/.+?\//g, `/packages/postgresql/${ver}/`)
 await writeFile('./README.md', readmenew)
 
+execSync(`git add spago.yaml package.json README.md`)
+execSync(`git commit -m 'chore: prepare ${ver}'`)
 execSync(`git tag ${ver}`)
 execSync(`git push --tags`)
 execSync(`git push --mirror github-mirror`)
