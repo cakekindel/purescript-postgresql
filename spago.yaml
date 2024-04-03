@@ -4,7 +4,8 @@ package:
     version: '1.0.0'
     license: 'GPL-3.0-or-later'
     location:
-      url: https://git.orionkindel.com/orion/purescript-pg.git
+      githubOwner: 'cakekindel'
+      githubRepo: 'puresript-postgresql'
   build:
     censorProjectWarnings:
       - 'ImplicitQualifiedImport'
