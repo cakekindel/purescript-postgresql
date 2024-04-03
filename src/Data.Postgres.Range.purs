@@ -5,7 +5,6 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Array as Array
 import Data.Foldable (class Foldable, foldl)
-import Data.FoldableWithIndex (foldMapDefault)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype, unwrap)
@@ -13,7 +12,6 @@ import Data.Postgres.Raw (Raw, rawMaybeNull, rawNullMaybe)
 import Data.Show.Generic (genericShow)
 import Data.Traversable (class Traversable, foldMapDefaultL, foldrDefault, sequenceDefault, traverse)
 import Effect (Effect)
-import Foreign.Object (foldMap)
 
 -- | A range of values with optional upper & lower bounds.
 -- |

@@ -2,15 +2,12 @@ module Control.Monad.Postgres.Session where
 
 import Prelude
 
-import Control.Monad.Fork.Class (class MonadBracket)
-import Control.Monad.Reader (class MonadReader, ReaderT, ask)
+import Control.Monad.Reader (ReaderT, ask)
 import Data.Postgres.Query (class AsQuery)
 import Data.Postgres.Result (class FromRows)
-import Effect.Aff (Fiber)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff.Postgres.Client (Client)
 import Effect.Aff.Postgres.Client as Client
-import Effect.Exception (Error)
 
 type SessionT :: forall k. (k -> Type) -> k -> Type
 type SessionT = ReaderT Client
