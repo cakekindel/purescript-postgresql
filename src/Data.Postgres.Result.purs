@@ -32,12 +32,14 @@ class FromRows a where
 
 instance (FromRow a) => FromRows (Array a) where
   fromRows = traverse fromRow
+else instance (FromRow a) => FromRows (Maybe a) where
+  fromRows = map Array.head <<< traverse fromRow
 else instance (FromRow a) => FromRows a where
   fromRows =
     let
       e = pure $ ForeignError $ "Expected at least 1 row"
     in
-      liftMaybe e <=< map Array.head <<< traverse fromRow
+      liftMaybe e <=< fromRows @(Maybe a)
 
 -- | Can be unmarshalled from a queried row
 -- |
