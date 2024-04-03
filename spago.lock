@@ -24,7 +24,7 @@ workspace:
         - node-buffer: ">=9.0.0 <10.0.0"
         - node-event-emitter: ">=3.0.0 <4.0.0"
         - nullable: ">=6.0.0 <7.0.0"
-        - parallel: ">=7.0.0 <8.0.0"
+        - parallel: ">=6.0.0 <7.0.0"
         - partial: ">=4.0.0 <5.0.0"
         - precise-datetime: ">=7.0.0 <8.0.0"
         - prelude: ">=6.0.1 <7.0.0"
