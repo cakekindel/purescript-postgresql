@@ -103,7 +103,7 @@ fetchOne = Array.head <$> fetch 1
 
 -- | Create a server-side cursor for a query in a transaction,
 -- | and execute a `CursorT` with a view to the new cursor.
-cursor :: forall m @t a q. AsQuery q => MonadAff m => MonadBracket Error Fiber m => MonadSession (SessionT m) => String -> q -> CursorT t (SessionT m) a -> PostgresT m a
+cursor :: forall m @t a q. FromRow t => AsQuery q => MonadAff m => MonadBracket Error Fiber m => MonadSession (SessionT m) => String -> q -> CursorT t (SessionT m) a -> PostgresT m a
 cursor cur q m =
   transaction do
     q' <- liftEffect $ asQuery q
