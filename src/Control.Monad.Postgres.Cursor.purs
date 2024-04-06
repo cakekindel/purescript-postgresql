@@ -8,21 +8,25 @@ import Control.Monad.Error.Class (class MonadError, class MonadThrow)
 import Control.Monad.Fork.Class (class MonadBracket, class MonadFork, class MonadKill, bracket, kill, never, uninterruptible)
 import Control.Monad.Postgres.Base (PostgresT, transaction)
 import Control.Monad.Postgres.Session (class MonadSession, SessionT, exec, exec_, query)
-import Control.Monad.Reader (class MonadAsk, class MonadReader, ReaderT, ask, local, runReaderT)
+import Control.Monad.Reader (class MonadAsk, class MonadReader, ReaderT, ask, local, mapReader, runReaderT, withReader, withReaderT)
 import Control.Monad.Trans.Class (class MonadTrans, lift)
 import Control.Parallel (class Parallel, parallel, sequential)
 import Data.Array as Array
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
+import Data.Postgres (class Deserialize, RepT, deserialize, smash)
 import Data.Postgres.Query (class AsQuery, asQuery)
-import Data.Postgres.Result (class FromRow)
+import Data.Postgres.Raw (Raw)
+import Data.Postgres.Result (class FromRow, fromRow)
+import Data.Traversable (traverse)
+import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Aff (Fiber)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Exception (Error)
 
 newtype CursorT :: forall k. Type -> (k -> Type) -> k -> Type
-newtype CursorT t m a = CursorT (ReaderT String m a)
+newtype CursorT t m a = CursorT (ReaderT (String /\ (Array Raw -> RepT t)) m a)
 
 derive instance Newtype (CursorT t m a) _
 derive newtype instance (Functor m) => Functor (CursorT t m)
@@ -46,10 +50,10 @@ instance (Monad m, MonadBracket e f (ReaderT String m), MonadBracket e f m) => M
   uninterruptible a = wrap $ uninterruptible $ unwrap a
   never = lift $ never
 
-instance Monad m => MonadAsk String (CursorT t m) where
+instance Monad m => MonadAsk (String /\ (Array Raw -> RepT t)) (CursorT t m) where
   ask = wrap ask
 
-instance Monad m => MonadReader String (CursorT t m) where
+instance Monad m => MonadReader (String /\ (Array Raw -> RepT t)) (CursorT t m) where
   local f m = wrap $ local f $ unwrap m
 
 instance (Apply m, Apply p, Parallel p m) => Parallel (CursorT t p) (CursorT t m) where
@@ -78,19 +82,21 @@ instance (Apply m, Apply p, Parallel p m) => Parallel (CursorT t p) (CursorT t m
 -- |     e <- fetchAll -- 15..100
 -- |     pure unit
 -- | ```
-class (MonadSession m, FromRow t) <= MonadCursor m t where
+class (MonadSession m) <= MonadCursor m t where
   -- | Fetch a specified number of rows from the cursor
   fetch :: Int -> m (Array t)
   -- | Fetch all remaining rows from the cursor
   fetchAll :: m (Array t)
 
-instance (FromRow t, MonadSession m) => MonadCursor (CursorT t m) t where
+instance (MonadSession m) => MonadCursor (CursorT t m) t where
   fetch n = do
-    cur <- ask
-    query $ "fetch forward " <> show n <> " from " <> cur
+    cur /\ f <- ask
+    raw :: Array (Array Raw) <- query $ "fetch forward " <> show n <> " from " <> cur
+    liftEffect $ smash $ traverse f raw
   fetchAll = do
-    cur <- ask
-    query $ "fetch all from " <> cur
+    cur /\ f <- ask
+    raw :: Array (Array Raw) <- query $ "fetch all from " <> cur
+    liftEffect $ smash $ traverse f raw
 
 instance (MonadSession m) => MonadSession (CursorT t m) where
   query = lift <<< query
@@ -104,8 +110,13 @@ fetchOne = Array.head <$> fetch 1
 -- | Create a server-side cursor for a query in a transaction,
 -- | and execute a `CursorT` with a view to the new cursor.
 cursor :: forall m @t a q. FromRow t => AsQuery q => MonadAff m => MonadBracket Error Fiber m => MonadSession (SessionT m) => String -> q -> CursorT t (SessionT m) a -> PostgresT m a
-cursor cur q m =
+cursor cur q m = cursorWith cur q fromRow m
+
+-- | `cursor`, but using a custom deserialize function for the data
+-- | yielded by the cursor
+cursorWith :: forall m @t a q. AsQuery q => MonadAff m => MonadBracket Error Fiber m => MonadSession (SessionT m) => String -> q -> (Array Raw -> RepT t) -> CursorT t (SessionT m) a -> PostgresT m a
+cursorWith cur q f m =
   transaction do
     q' <- liftEffect $ asQuery q
     exec_ $ "declare " <> cur <> " cursor for (" <> (unwrap q').text <> ");"
-    runReaderT (unwrap m) cur
+    runReaderT (unwrap m) (cur /\ f)

@@ -5,6 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Error.Class (liftMaybe)
 import Data.Array.NonEmpty.Internal (NonEmptyArray)
+import Data.Bifunctor (lmap)
 import Data.Foldable (intercalate)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep as G
@@ -17,7 +18,7 @@ import Data.Postgres.Raw (Raw)
 import Data.Symbol (class IsSymbol)
 import Data.Traversable (find)
 import Data.Tuple (fst, snd)
-import Data.Tuple.Nested (type (/\))
+import Data.Tuple.Nested (type (/\), (/\))
 import Foreign (ForeignError(..))
 import Type.Prelude (Proxy(..), reflectSymbol)
 
@@ -45,19 +46,19 @@ defaultSerializeEnum :: forall @a ty. CustomEnum a ty => a -> RepT Raw
 defaultSerializeEnum = serialize <<< printEnum
 
 class GenericCustomEnum a where
-  genericEnumVariants' :: NonEmptyArray a
+  genericEnumVariants' :: NonEmptyArray (a /\ String)
   genericParseEnum' :: String -> Maybe a
   genericPrintEnum' :: a -> String
 
 instance IsSymbol n => GenericCustomEnum (G.Constructor n G.NoArguments) where
-  genericEnumVariants' = pure (G.Constructor @n G.NoArguments)
+  genericEnumVariants' = pure (G.Constructor @n G.NoArguments /\ reflectSymbol (Proxy @n))
   genericParseEnum' s
     | s == reflectSymbol (Proxy @n) = Just (G.Constructor @n G.NoArguments)
     | otherwise = Nothing
   genericPrintEnum' _ = reflectSymbol (Proxy @n)
 
 instance (GenericCustomEnum a, GenericCustomEnum b) => GenericCustomEnum (G.Sum a b) where
-  genericEnumVariants' = (G.Inl <$> genericEnumVariants' @a) <> (G.Inr <$> genericEnumVariants' @b)
+  genericEnumVariants' = (lmap G.Inl <$> genericEnumVariants' @a) <> (lmap G.Inr <$> genericEnumVariants' @b)
   genericParseEnum' s = (G.Inl <$> genericParseEnum' @a s) <|> (G.Inr <$> genericParseEnum' @b s)
   genericPrintEnum' (G.Inl a) = genericPrintEnum' a
   genericPrintEnum' (G.Inr a) = genericPrintEnum' a
@@ -65,8 +66,8 @@ instance (GenericCustomEnum a, GenericCustomEnum b) => GenericCustomEnum (G.Sum 
 enumPrintExpr :: forall @a ty. CustomEnum a ty => a -> Maybe String
 enumPrintExpr = Just <<< (\s -> quoted s <> " :: " <> typeName @a) <<< printEnum
 
-genericEnumVariants :: forall a g. Generic a g => GenericCustomEnum g => NonEmptyArray a
-genericEnumVariants = G.to <$> genericEnumVariants'
+genericEnumVariants :: forall a g. Generic a g => GenericCustomEnum g => NonEmptyArray (a /\ String)
+genericEnumVariants = lmap G.to <$> genericEnumVariants'
 
 genericParseEnum :: forall a g. Generic a g => GenericCustomEnum g => String -> Maybe a
 genericParseEnum = map G.to <<< genericParseEnum'

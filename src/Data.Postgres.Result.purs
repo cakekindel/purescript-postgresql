@@ -8,7 +8,7 @@ import Data.Int as Int
 import Data.Maybe (Maybe)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
-import Data.Postgres (class Rep, RepT, deserialize)
+import Data.Postgres (class Deserialize, class Rep, RepT, deserialize)
 import Data.Postgres.Raw (Raw)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple)
@@ -79,7 +79,7 @@ class FromRow (a :: Type) where
   -- | Performs the conversion
   fromRow :: Array Raw -> RepT a
 
-instance (Rep a, FromRow b) => FromRow (a /\ b) where
+instance (Deserialize a, FromRow b) => FromRow (a /\ b) where
   minColumnCount _ = minColumnCount (Proxy @b) + 1
   fromRow r =
     let
@@ -97,7 +97,7 @@ else instance FromRow (Array Raw) where
 else instance FromRow Unit where
   minColumnCount _ = 0
   fromRow _ = pure unit
-else instance Rep a => FromRow a where
+else instance Deserialize a => FromRow a where
   minColumnCount _ = 1
   fromRow r =
     let

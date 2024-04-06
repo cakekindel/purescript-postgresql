@@ -3,14 +3,10 @@ module Data.Postgres.Unresult where
 import Prelude
 
 import Control.Monad.Error.Class (class MonadThrow, liftMaybe)
-import Control.Monad.Morph (hoist)
-import Control.Monad.State (StateT(..), runStateT, state)
-import Control.Monad.Trans.Class (lift)
+import Control.Monad.State (StateT, runStateT, state)
 import Data.Array as Array
-import Data.Maybe (fromMaybe, maybe)
-import Data.Postgres (class Deserialize, class Rep, RepT, deserialize, smash)
+import Data.Postgres (class Deserialize, deserialize, smash)
 import Data.Postgres.Raw (Raw)
-import Data.Postgres.Result (fromRow)
 import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Effect.Aff (error)

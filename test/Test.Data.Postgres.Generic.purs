@@ -10,7 +10,7 @@ import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Postgres (class Deserialize, class Serialize, deserialize, serialize, smash)
-import Data.Postgres.Custom.Enum (class CustomEnum, create, enumDeserialize, enumPrintExpr, enumSerialize, genericEnumVariants, genericParseEnum, genericPrintEnum, parseEnum, printEnum)
+import Data.Postgres.Custom.Enum (class CustomEnum, create, defaultDeserializeEnum, defaultSerializeEnum, enumPrintExpr, genericEnumVariants, genericParseEnum, genericPrintEnum, parseEnum, printEnum)
 import Data.Show.Generic (genericShow)
 import Effect.Class (liftEffect)
 import Test.Spec (Spec, describe, it)
@@ -25,10 +25,10 @@ instance Show Enum1 where
   show = genericShow
 
 instance Serialize Enum1 where
-  serialize a = enumSerialize a
+  serialize a = defaultSerializeEnum a
 
 instance Deserialize Enum1 where
-  deserialize a = enumDeserialize a
+  deserialize a = defaultDeserializeEnum a
 
 instance CustomEnum Enum1 "enum_1" where
   printEnum = genericPrintEnum
@@ -43,10 +43,10 @@ instance Show Enum2 where
   show = genericShow
 
 instance Serialize Enum2 where
-  serialize a = enumSerialize a
+  serialize a = defaultSerializeEnum a
 
 instance Deserialize Enum2 where
-  deserialize a = enumDeserialize a
+  deserialize a = defaultDeserializeEnum a
 
 instance CustomEnum Enum2 "enum_2" where
   printEnum a = genericPrintEnum a
@@ -61,10 +61,10 @@ instance Show Enum5 where
   show = genericShow
 
 instance Serialize Enum5 where
-  serialize a = enumSerialize a
+  serialize a = defaultSerializeEnum a
 
 instance Deserialize Enum5 where
-  deserialize a = enumDeserialize a
+  deserialize a = defaultDeserializeEnum a
 
 instance CustomEnum Enum5 "enum_5" where
   printEnum a = genericPrintEnum a
