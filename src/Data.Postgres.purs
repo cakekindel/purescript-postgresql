@@ -12,7 +12,6 @@ import Data.DateTime (DateTime)
 import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
-import Data.Postgres.Custom (class CustomDeserialize, class CustomSerialize, customDeserialize, customSerialize)
 import Data.Postgres.Range (Range, __rangeFromRecord, __rangeRawFromRaw, __rangeRawFromRecord, __rangeRawToRecord, __rangeToRecord)
 import Data.Postgres.Raw (Null(..), Raw, jsNull)
 import Data.Postgres.Raw (unsafeFromForeign, asForeign) as Raw
@@ -73,87 +72,84 @@ instance Serialize Raw where
   serialize = pure
 
 -- | `NULL`
-else instance Serialize Unit where
+instance Serialize Unit where
   serialize _ = serialize Null
 
 -- | `NULL`
-else instance Serialize Null where
+instance Serialize Null where
   serialize _ = unsafeSerializeCoerce jsNull
 
 -- | `json`, `jsonb`
-else instance WriteForeign a => Serialize (JSON a) where
+instance WriteForeign a => Serialize (JSON a) where
   serialize = serialize <<< writeJSON <<< unwrap
 
 -- | `bytea`
-else instance Serialize Buffer where
+instance Serialize Buffer where
   serialize = unsafeSerializeCoerce
 
 -- | `int2`, `int4`
-else instance Serialize Int where
+instance Serialize Int where
   serialize = unsafeSerializeCoerce
 
 -- | `int8`
-else instance Serialize BigInt where
+instance Serialize BigInt where
   serialize = serialize <<< BigInt.toString
 
 -- | `bool`
-else instance Serialize Boolean where
+instance Serialize Boolean where
   serialize = unsafeSerializeCoerce
 
 -- | `text`, `inet`, `tsquery`, `tsvector`, `uuid`, `xml`, `cidr`, `time`, `timetz`
-else instance Serialize String where
+instance Serialize String where
   serialize = unsafeSerializeCoerce
 
 -- | `float4`, `float8`
-else instance Serialize Number where
+instance Serialize Number where
   serialize = unsafeSerializeCoerce
 
 -- | `timestamp`, `timestamptz`
-else instance Serialize DateTime where
+instance Serialize DateTime where
   serialize = serialize <<< unwrap <<< DateTime.ISO.fromDateTime
 
 -- | `Just` -> `a`, `Nothing` -> `NULL`
-else instance Serialize a => Serialize (Maybe a) where
+instance Serialize a => Serialize (Maybe a) where
   serialize (Just a) = serialize a
   serialize Nothing = unsafeSerializeCoerce jsNull
 
 -- | postgres `array`
-else instance Serialize a => Serialize (Array a) where
+instance Serialize a => Serialize (Array a) where
   serialize = unsafeSerializeCoerce <=< traverse serialize
 
-else instance (Ord a, Rep a) => Serialize (Range a) where
+instance (Ord a, Rep a) => Serialize (Range a) where
   serialize =
     map (Raw.unsafeFromForeign <<< unsafeToForeign <<< __rangeRawFromRecord <<< __rangeToRecord)
       <<< traverse serialize
-
-else instance (CustomSerialize a ty) => Serialize a where
-  serialize = customSerialize
 
 instance Deserialize Raw where
   deserialize = pure
 
 -- | `NULL` (always succeeds)
-else instance Deserialize Unit where
+instance Deserialize Unit where
   deserialize _ = pure unit
 
 -- | `NULL` (fails if non-null)
-else instance Deserialize Null where
+instance Deserialize Null where
   deserialize = map (const Null) <<< F.readNullOrUndefined <<< Raw.asForeign
 
 -- | `json`, `jsonb`
-else instance ReadForeign a => Deserialize (JSON a) where
+instance ReadForeign a => Deserialize (JSON a) where
   deserialize = map wrap <<< (hoist (pure <<< unwrap) <<< readJSON') <=< deserialize @String
 
 -- | `bytea`
-else instance Deserialize Buffer where
+instance Deserialize Buffer where
   deserialize = (F.unsafeReadTagged "Buffer") <<< Raw.asForeign
 
 -- | `int2`, `int4`
-else instance Deserialize Int where
+instance Deserialize Int where
   deserialize = F.readInt <<< Raw.asForeign
 
 -- | `int8`
-else instance Deserialize BigInt where
+instance Deserialize BigInt where
   deserialize =
     let
       invalid s = pure $ ForeignError $ "Invalid bigint: " <> s
@@ -162,30 +158,30 @@ else instance Deserialize BigInt where
       fromString <=< deserialize @String
 
 -- | `bool`
-else instance Deserialize Boolean where
+instance Deserialize Boolean where
   deserialize = F.readBoolean <<< Raw.asForeign
 
 -- | `text`, `inet`, `tsquery`, `tsvector`, `uuid`, `xml`, `cidr`, `time`, `timetz`
-else instance Deserialize String where
+instance Deserialize String where
   deserialize = F.readString <<< Raw.asForeign
 
 -- | `float4`, `float8`
-else instance Deserialize Number where
+instance Deserialize Number where
   deserialize = F.readNumber <<< Raw.asForeign
 
 -- | `timestamp`, `timestamptz`
-else instance Deserialize DateTime where
+instance Deserialize DateTime where
   deserialize raw = do
     s :: String <- deserialize raw
     let invalid = pure $ ForeignError $ "Not a valid ISO8601 string: `" <> s <> "`"
     liftMaybe invalid $ DateTime.ISO.toDateTime $ wrap s
 
 -- | postgres `array`
-else instance Deserialize a => Deserialize (Array a) where
+instance Deserialize a => Deserialize (Array a) where
   deserialize = traverse (deserialize <<< Raw.unsafeFromForeign) <=< F.readArray <<< Raw.asForeign
 
 -- | non-NULL -> `Just`, NULL -> `Nothing`
-else instance Deserialize a => Deserialize (Maybe a) where
+instance Deserialize a => Deserialize (Maybe a) where
   deserialize raw =
     let
       nothing = const Nothing <$> deserialize @Null raw
@@ -193,8 +189,5 @@ else instance Deserialize a => Deserialize (Maybe a) where
     in
       just <|> nothing
 
-else instance (Ord a, Rep a) => Deserialize (Range a) where
+instance (Ord a, Rep a) => Deserialize (Range a) where
   deserialize = traverse deserialize <=< map (__rangeFromRecord <<< __rangeRawToRecord) <<< lift <<< __rangeRawFromRaw
-
-else instance (CustomDeserialize a ty) => Deserialize a where
-  deserialize = customDeserialize

@@ -5,35 +5,23 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Error.Class (liftMaybe)
 import Data.Array.NonEmpty.Internal (NonEmptyArray)
-import Data.Either (hush)
 import Data.Foldable (intercalate)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep as G
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (Maybe(..))
 import Data.Newtype as Newtype
-import Data.Postgres (RepT, deserialize, serialize)
-import Data.Postgres.Custom (class CustomRep, quoted, typeName)
+import Data.Postgres (class Rep, RepT, deserialize, serialize)
+import Data.Postgres.Custom (quoted)
 import Data.Postgres.Query (Query, emptyQuery)
 import Data.Postgres.Raw (Raw)
-import Data.String as String
-import Data.String.Regex (Regex)
-import Data.String.Regex as Regex
-import Data.String.Regex.Flags as Regex.Flags
 import Data.Symbol (class IsSymbol)
 import Foreign (ForeignError(..))
-import Partial.Unsafe (unsafePartial)
 import Type.Prelude (Proxy(..), reflectSymbol)
 
-upperRe :: Regex
-upperRe = unsafePartial fromJust $ hush $ Regex.regex "[A-Z]" Regex.Flags.global
+typeName :: forall @a ty. CustomEnum a ty => String
+typeName = reflectSymbol (Proxy @ty)
 
-leadingUnderRe :: Regex
-leadingUnderRe = unsafePartial fromJust $ hush $ Regex.regex "^_" Regex.Flags.noFlags
-
-pascalToSnake :: String -> String
-pascalToSnake = String.toLower <<< Regex.replace leadingUnderRe "" <<< Regex.replace upperRe "_$1"
-
-class CustomRep a ty <= CustomEnum a ty | a -> ty where
+class (IsSymbol ty, Rep a) <= CustomEnum a ty | a -> ty where
   enumVariants :: NonEmptyArray a
   parseEnum :: String -> Maybe a
   printEnum :: a -> String

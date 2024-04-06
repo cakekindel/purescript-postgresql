@@ -1,5 +1,5 @@
-import {readFile, writeFile} from 'fs/promises'
-import {execSync} from 'child_process'
+import { readFile, writeFile } from 'fs/promises'
+import { execSync } from 'child_process'
 
 let ver = process.argv[2]
 if (!ver) {
@@ -19,7 +19,10 @@ const spagonew = spago.replace(/version: .+/, `version: '${ver}'`)
 await writeFile('./spago.yaml', spagonew)
 
 const readme = await readFile('./README.md', 'utf8')
-const readmenew = readme.replace(/packages\/purescript-postgresql\/.+?\//g, `/packages/purescript-postgresql/${ver}/`)
+const readmenew = readme.replace(
+  /packages\/purescript-postgresql\/.+?\//g,
+  `/packages/purescript-postgresql/${ver}/`,
+)
 await writeFile('./README.md', readmenew)
 
 execSync(`git add spago.yaml package.json README.md`)
