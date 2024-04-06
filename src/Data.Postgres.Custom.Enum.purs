@@ -8,23 +8,41 @@ import Data.Array.NonEmpty.Internal (NonEmptyArray)
 import Data.Foldable (intercalate)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep as G
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype as Newtype
 import Data.Postgres (class Rep, RepT, deserialize, serialize)
 import Data.Postgres.Custom (quoted)
 import Data.Postgres.Query (Query, emptyQuery)
 import Data.Postgres.Raw (Raw)
 import Data.Symbol (class IsSymbol)
+import Data.Traversable (find)
+import Data.Tuple (fst, snd)
+import Data.Tuple.Nested (type (/\))
 import Foreign (ForeignError(..))
 import Type.Prelude (Proxy(..), reflectSymbol)
 
 typeName :: forall @a ty. CustomEnum a ty => String
 typeName = reflectSymbol (Proxy @ty)
 
-class (IsSymbol ty, Rep a) <= CustomEnum a ty | a -> ty where
-  enumVariants :: NonEmptyArray a
+class (IsSymbol ty, Rep a, Eq a) <= CustomEnum a ty | a -> ty where
+  enumVariants :: NonEmptyArray (a /\ String)
   parseEnum :: String -> Maybe a
   printEnum :: a -> String
+
+defaultParseEnum :: forall a ty. CustomEnum a ty => String -> Maybe a
+defaultParseEnum s = map fst $ find (eq s <<< snd) enumVariants
+
+defaultPrintEnum :: forall a ty. CustomEnum a ty => a -> String
+defaultPrintEnum a = fromMaybe "ERROR: CustomEnum enumVariants was not exhaustive" $ map snd $ find (eq a <<< fst) enumVariants
+
+defaultDeserializeEnum :: forall @a ty. CustomEnum a ty => Raw -> RepT a
+defaultDeserializeEnum raw = do
+  s <- deserialize raw
+  let e = pure $ ForeignError $ "unsupported enum variant for " <> typeName @a <> ": " <> quoted s
+  liftMaybe e $ parseEnum s
+
+defaultSerializeEnum :: forall @a ty. CustomEnum a ty => a -> RepT Raw
+defaultSerializeEnum = serialize <<< printEnum
 
 class GenericCustomEnum a where
   genericEnumVariants' :: NonEmptyArray a
@@ -44,15 +62,6 @@ instance (GenericCustomEnum a, GenericCustomEnum b) => GenericCustomEnum (G.Sum 
   genericPrintEnum' (G.Inl a) = genericPrintEnum' a
   genericPrintEnum' (G.Inr a) = genericPrintEnum' a
 
-enumDeserialize :: forall @a ty. CustomEnum a ty => Raw -> RepT a
-enumDeserialize raw = do
-  s <- deserialize raw
-  let e = pure $ ForeignError $ "unsupported enum variant for " <> typeName @a <> ": " <> quoted s
-  liftMaybe e $ parseEnum s
-
-enumSerialize :: forall @a ty. CustomEnum a ty => a -> RepT Raw
-enumSerialize = serialize <<< printEnum
-
 enumPrintExpr :: forall @a ty. CustomEnum a ty => a -> Maybe String
 enumPrintExpr = Just <<< (\s -> quoted s <> " :: " <> typeName @a) <<< printEnum
 
@@ -68,9 +77,7 @@ genericPrintEnum = genericPrintEnum' <<< G.from
 create :: forall @a ty. CustomEnum a ty => Query
 create =
   let
-    variants' :: NonEmptyArray a
-    variants' = enumVariants
-    variants = intercalate ", " $ quoted <$> printEnum <$> variants'
+    variants = intercalate ", " $ quoted <$> snd <$> enumVariants @a
     q = "create type " <> typeName @a <> " as enum (" <> variants <> ");"
   in
     Newtype.modify (_ { text = q }) emptyQuery
