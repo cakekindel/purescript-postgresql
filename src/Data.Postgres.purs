@@ -41,7 +41,7 @@ derive newtype instance ReadForeign a => ReadForeign (JSON a)
 foreign import modifyPgTypes :: Effect Unit
 
 -- | The serialization & deserialization monad.
-type RepT a = ExceptT (NonEmptyList ForeignError) Effect a
+type RepT = ExceptT (NonEmptyList ForeignError) Effect
 
 -- | Flatten to an Effect, `show`ing errors
 smash :: forall a. RepT a -> Effect a
