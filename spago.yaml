@@ -13,7 +13,6 @@ package:
     strict: true
     pedanticPackages: true
   dependencies:
-    - tailrec
     - aff: ">=7.1.0 <8.0.0"
     - aff-promise: ">=4.0.0 <5.0.0"
     - arrays: ">=7.3.0 <8.0.0"
@@ -43,6 +42,7 @@ package:
     - record: ">=4.0.0 <5.0.0"
     - simple-json: ">=9.0.0 <10.0.0"
     - strings: ">=6.0.1 <7.0.0"
+    - tailrec: ">=6.1.0 <7.0.0"
     - transformers: ">=6.0.0 <7.0.0"
     - tuples: ">=7.0.0 <8.0.0"
     - typelevel-prelude: ">=7.0.0 <8.0.0"
