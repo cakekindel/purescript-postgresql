@@ -6,9 +6,8 @@ import Control.Alt (class Alt)
 import Control.Alternative (class Plus)
 import Control.Monad.Error.Class (class MonadError, class MonadThrow)
 import Control.Monad.Fork.Class (class MonadBracket, class MonadFork, class MonadKill, bracket, kill, never, uninterruptible)
-import Control.Monad.Postgres.Base (PostgresT, transaction)
-import Control.Monad.Postgres.Session (class MonadSession, SessionT, exec, exec_, query)
-import Control.Monad.Reader (class MonadAsk, class MonadReader, ReaderT, ask, local, runReaderT)
+import Control.Monad.Postgres.Session (class MonadSession, exec, exec_, query)
+import Control.Monad.Reader (class MonadAsk, class MonadReader, ReaderT, ask, local)
 import Control.Monad.Rec.Class (class MonadRec)
 import Control.Monad.Trans.Class (class MonadTrans, lift)
 import Control.Parallel (class Parallel, parallel, sequential)
@@ -16,16 +15,12 @@ import Data.Array as Array
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Postgres (RepT, smash)
-import Data.Postgres.Query (class AsQuery, asQuery)
 import Data.Postgres.Raw (Raw)
-import Data.Postgres.Result (class FromRow, fromRow)
 import Data.Traversable (traverse)
 import Data.Tuple.Nested (type (/\), (/\))
-import Effect.Aff (Fiber)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Aff.Unlift (class MonadUnliftAff)
 import Effect.Class (class MonadEffect, liftEffect)
-import Effect.Exception (Error)
 import Effect.Unlift (class MonadUnliftEffect)
 
 newtype CursorT :: forall k. Type -> (k -> Type) -> k -> Type
@@ -112,17 +107,3 @@ instance (MonadSession m) => MonadSession (CursorT t m) where
 -- | Fetch the next row from the cursor
 fetchOne :: forall m t. MonadCursor m t => m (Maybe t)
 fetchOne = Array.head <$> fetch 1
-
--- | Create a server-side cursor for a query in a transaction,
--- | and execute a `CursorT` with a view to the new cursor.
-cursor :: forall m @t a q. FromRow t => AsQuery q => MonadAff m => MonadBracket Error Fiber m => MonadSession (SessionT m) => String -> q -> CursorT t (SessionT m) a -> PostgresT m a
-cursor cur q m = cursorWith cur q fromRow m
-
--- | `cursor`, but using a custom deserialize function for the data
--- | yielded by the cursor
-cursorWith :: forall m @t a q. AsQuery q => MonadAff m => MonadBracket Error Fiber m => MonadSession (SessionT m) => String -> q -> (Array Raw -> RepT t) -> CursorT t (SessionT m) a -> PostgresT m a
-cursorWith cur q f m =
-  transaction do
-    q' <- liftEffect $ asQuery q
-    exec_ $ "declare " <> cur <> " cursor for (" <> (unwrap q').text <> ");"
-    runReaderT (unwrap m) (cur /\ f)
