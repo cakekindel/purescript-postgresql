@@ -6,14 +6,15 @@ import Control.Promise (Promise)
 import Control.Promise as Promise
 import Data.Functor (voidRight)
 import Data.Maybe (fromMaybe)
+import Data.Newtype (wrap)
 import Data.Postgres (smash)
 import Data.Postgres.Query (class AsQuery, QueryRaw, asQuery, __queryToRaw)
 import Data.Postgres.Result (class FromRows, Result, fromRows, rows, rowsAffected)
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
-import Effect.Postgres.Client (Client, Config, make)
 import Effect.Postgres.Client (Client, ClientConfigRaw, Config, Notification, NotificationRaw, __make, __uncfg, endE, errorE, make, noticeE, notificationE) as X
+import Effect.Postgres.Client (Client, Config, make)
 import Prim.Row (class Union)
 
 -- | Create a client and immediately connect it to the database
@@ -56,7 +57,12 @@ exec q = map (fromMaybe 0 <<< rowsAffected) <<< queryRaw q
 -- |
 -- | <https://node-postgres.com/apis/client#clientquery>
 query :: forall q r. AsQuery q => FromRows r => q -> Client -> Aff r
-query q = (liftEffect <<< smash <<< fromRows) <=< map rows <<< queryRaw q
+query q c = do
+  raw <- queryRaw q c
+  let
+    affected = rowsAffected raw
+    rows' = rows raw
+  liftEffect $ smash $ fromRows (wrap $ fromMaybe 0 affected) rows'
 
 -- | FFI binding to `Client#connect`
 foreign import __connect :: Client -> Effect (Promise Unit)

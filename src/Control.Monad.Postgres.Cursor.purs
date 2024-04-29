@@ -16,12 +16,19 @@ import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Postgres (RepT, smash)
 import Data.Postgres.Raw (Raw)
+import Data.Postgres.Result (RowsAffected(..))
 import Data.Traversable (traverse)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Aff.Class (class MonadAff)
 import Effect.Aff.Unlift (class MonadUnliftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Unlift (class MonadUnliftEffect)
+
+data Move
+  -- | `MOVE RELATIVE`
+  = MoveRelative Int
+  -- | `MOVE ABSOLUTE`
+  | MoveTo Int
 
 newtype CursorT :: forall k. Type -> (k -> Type) -> k -> Type
 newtype CursorT t m a = CursorT (ReaderT (String /\ (Array Raw -> RepT t)) m a)
@@ -88,6 +95,9 @@ class (MonadSession m) <= MonadCursor m t where
   fetch :: Int -> m (Array t)
   -- | Fetch all remaining rows from the cursor
   fetchAll :: m (Array t)
+  -- | Change the cursor's position without fetching any data,
+  -- | returning the number of rows skipped.
+  move :: Move -> m Int
 
 instance (MonadSession m) => MonadCursor (CursorT t m) t where
   fetch n = do
@@ -98,6 +108,14 @@ instance (MonadSession m) => MonadCursor (CursorT t m) t where
     cur /\ f <- ask
     raw :: Array (Array Raw) <- query $ "fetch all from " <> cur
     liftEffect $ smash $ traverse f raw
+  move (MoveTo n) = do
+    cur /\ _ <- ask
+    RowsAffected n' <- query $ ("move absolute $1 from " <> cur) /\ n
+    pure n'
+  move (MoveRelative n) = do
+    cur /\ _ <- ask
+    RowsAffected n' <- query $ ("move relative $1 from " <> cur) /\ n
+    pure n'
 
 instance (MonadSession m) => MonadSession (CursorT t m) where
   query = lift <<< query

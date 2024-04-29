@@ -4,11 +4,13 @@ import Prelude
 
 import Control.Monad.Error.Class (liftMaybe, throwError)
 import Data.Array as Array
+import Data.Generic.Rep (class Generic)
 import Data.Int as Int
 import Data.Maybe (Maybe)
+import Data.Newtype (class Newtype)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
-import Data.Postgres (class Deserialize, class Rep, RepT, deserialize)
+import Data.Postgres (class Deserialize, RepT, deserialize)
 import Data.Postgres.Raw (Raw)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple)
@@ -27,19 +29,29 @@ foreign import data Result :: Type
 rowsAffected :: Result -> Maybe Int
 rowsAffected = Int.fromNumber <=< Nullable.toMaybe <<< __rowsAffected
 
-class FromRows a where
-  fromRows :: Array (Array Raw) -> RepT a
+newtype RowsAffected = RowsAffected Int
 
-instance (FromRow a) => FromRows (Array a) where
-  fromRows = traverse fromRow
+derive instance Newtype RowsAffected _
+derive instance Generic RowsAffected _
+derive newtype instance Eq RowsAffected
+derive newtype instance Ord RowsAffected
+derive newtype instance Show RowsAffected
+
+class FromRows a where
+  fromRows :: RowsAffected -> Array (Array Raw) -> RepT a
+
+instance FromRows RowsAffected where
+  fromRows a _ = pure a
+else instance (FromRow a) => FromRows (Array a) where
+  fromRows _ = traverse fromRow
 else instance (FromRow a) => FromRows (Maybe a) where
-  fromRows = map Array.head <<< traverse fromRow
+  fromRows _ = map Array.head <<< traverse fromRow
 else instance (FromRow a) => FromRows a where
-  fromRows =
+  fromRows a =
     let
       e = pure $ ForeignError $ "Expected at least 1 row"
     in
-      liftMaybe e <=< fromRows @(Maybe a)
+      liftMaybe e <=< fromRows @(Maybe a) a
 
 -- | Can be unmarshalled from a queried row
 -- |

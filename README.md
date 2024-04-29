@@ -116,6 +116,8 @@ which is implemented for:
  - `Array a` where `a` is [`FromRow`]
  - `Maybe a` where `a` is [`FromRow`] (equivalent to `Array.head <<< fromRows`)
  - `a` where `a` is [`FromRow`] (throws if 0 rows yielded)
+ - `RowsAffected`
+     - Extracts the number of rows processed by the last command in the query (ex. `INSERT INTO foo (bar) VALUES ('a'), ('b')` -> `INSERT 2` -> `RowsAffected 2`)
 
 ### Data - Ranges
 Postgres ranges are represented with [`Range`].
@@ -223,9 +225,11 @@ Execute [`CursorT`] monads with [`cursor`]:
 dbMain :: PostgresT Aff Int
 dbMain =
   cursor @(Int /\ String) "people_cursor" "select id, name from persons" do
-    fetchOne -- Just (1 /\ "Henry")
-    fetchAll -- [2 /\ "Sarah"]
-    fetchOne -- Nothing
+    a <- fetchOne -- Just (1 /\ "Henry")
+    b <- fetchOne -- Just (2 /\ "Sarah")
+    void $ move (MoveRelative -2)
+    c <- fetchAll -- [1 /\ "Henry", 2 /\ "Sarah"]
+    d <- fetchOne -- Nothing
 ```
 
 ### Monads - `SessionT`
