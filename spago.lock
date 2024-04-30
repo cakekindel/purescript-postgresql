@@ -8,7 +8,6 @@ workspace:
         - arrays: ">=7.3.0 <8.0.0"
         - bifunctors: ">=6.0.0 <7.0.0"
         - control: ">=6.0.0 <7.0.0"
-        - csv-stream: ">=1.0.2 <2.0.0"
         - datetime: ">=6.1.0 <7.0.0"
         - effect: ">=4.0.0 <5.0.0"
         - either: ">=6.1.0 <7.0.0"
@@ -24,6 +23,7 @@ workspace:
         - newtype: ">=5.0.0 <6.0.0"
         - node-buffer: ">=9.0.0 <10.0.0"
         - node-event-emitter: ">=3.0.0 <4.0.0"
+        - node-streams: ">=9.0.0 <10.0.0"
         - nullable: ">=6.0.0 <7.0.0"
         - parallel: ">=6.0.0 <7.0.0"
         - partial: ">=4.0.0 <5.0.0"
@@ -60,7 +60,6 @@ workspace:
         - const
         - contravariant
         - control
-        - csv-stream
         - datetime
         - decimals
         - distributive
@@ -263,39 +262,6 @@ packages:
     dependencies:
       - newtype
       - prelude
-  csv-stream:
-    type: registry
-    version: 1.0.2
-    integrity: sha256-2HTFDcoyTrf3TjzGL0fgNaRMSRlc4adXEOgXtEVzNY4=
-    dependencies:
-      - aff
-      - arrays
-      - bifunctors
-      - datetime
-      - effect
-      - either
-      - exceptions
-      - foldable-traversable
-      - foreign
-      - foreign-object
-      - integers
-      - lists
-      - maybe
-      - newtype
-      - node-buffer
-      - node-event-emitter
-      - node-streams
-      - nullable
-      - numbers
-      - precise-datetime
-      - prelude
-      - record
-      - st
-      - strings
-      - tailrec
-      - transformers
-      - typelevel-prelude
-      - unsafe-coerce
   datetime:
     type: registry
     version: 6.1.0
