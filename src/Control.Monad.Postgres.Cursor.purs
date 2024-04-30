@@ -6,7 +6,7 @@ import Control.Alt (class Alt)
 import Control.Alternative (class Plus)
 import Control.Monad.Error.Class (class MonadError, class MonadThrow)
 import Control.Monad.Fork.Class (class MonadBracket, class MonadFork, class MonadKill, bracket, kill, never, uninterruptible)
-import Control.Monad.Postgres.Session (class MonadSession, exec, exec_, query)
+import Control.Monad.Postgres.Session (class MonadSession, exec, exec_, query, streamIn, streamOut)
 import Control.Monad.Reader (class MonadAsk, class MonadReader, ReaderT, ask, local)
 import Control.Monad.Rec.Class (class MonadRec)
 import Control.Monad.Trans.Class (class MonadTrans, lift)
@@ -121,6 +121,8 @@ instance (MonadSession m) => MonadSession (CursorT t m) where
   query = lift <<< query
   exec = lift <<< exec
   exec_ = lift <<< exec_
+  streamIn = lift <<< streamIn
+  streamOut = lift <<< streamOut
 
 -- | Fetch the next row from the cursor
 fetchOne :: forall m t. MonadCursor m t => m (Maybe t)

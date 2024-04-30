@@ -8,7 +8,7 @@ import Control.Monad.Error.Class (class MonadError, class MonadThrow, catchError
 import Control.Monad.Fork.Class (class MonadBracket, class MonadFork, class MonadKill, bracket, kill, never, uninterruptible)
 import Control.Monad.Morph (class MFunctor, class MMonad)
 import Control.Monad.Postgres.Cursor (class MonadCursor, CursorT)
-import Control.Monad.Postgres.Session (class MonadSession, SessionT, exec, exec_, query)
+import Control.Monad.Postgres.Session (class MonadSession, SessionT, exec, exec_, query, streamIn, streamOut)
 import Control.Monad.Reader (class MonadAsk, class MonadReader, ReaderT, ask, local, runReaderT)
 import Control.Monad.Rec.Class (class MonadRec)
 import Control.Monad.Trans.Class (class MonadTrans, lift)
@@ -95,6 +95,8 @@ instance (MonadBracket e f m, MonadAff m) => MonadSession (PostgresT m) where
   query = session <<< query
   exec = session <<< exec
   exec_ = session <<< exec_
+  streamIn = session <<< streamIn
+  streamOut = session <<< streamOut
 
 -- | Typeclass generalizing `PostgresT`. Allows for dependency-injecting different
 -- | implementations of the idea of a postgres connection.

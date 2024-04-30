@@ -1,4 +1,4 @@
-module Effect.Aff.Postgres.Client (connected, connect, end, exec, query, queryRaw, __connect, __end, __query, module X) where
+module Effect.Aff.Postgres.Client (connected, connect, end, exec, execWithStdin, queryWithStdout, query, queryRaw, __connect, __end, __query, __execStreamStdin, __execStreamStdout, module X) where
 
 import Prelude
 
@@ -15,6 +15,7 @@ import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Postgres.Client (Client, ClientConfigRaw, Config, Notification, NotificationRaw, __make, __uncfg, endE, errorE, make, noticeE, notificationE) as X
 import Effect.Postgres.Client (Client, Config, make)
+import Node.Stream (Readable, Writable)
 import Prim.Row (class Union)
 
 -- | Create a client and immediately connect it to the database
@@ -64,6 +65,12 @@ query q c = do
     rows' = rows raw
   liftEffect $ smash $ fromRows (wrap $ fromMaybe 0 affected) rows'
 
+execWithStdin :: String -> Client -> Effect (Writable ())
+execWithStdin q c = __execStreamStdin q c
+
+queryWithStdout :: String -> Client -> Effect (Readable ())
+queryWithStdout q c = __execStreamStdout q c
+
 -- | FFI binding to `Client#connect`
 foreign import __connect :: Client -> Effect (Promise Unit)
 
@@ -72,3 +79,9 @@ foreign import __end :: Client -> Effect (Promise Unit)
 
 -- | FFI binding to `Client#query`
 foreign import __query :: QueryRaw -> Client -> Effect (Promise Result)
+
+-- | FFI binding to `import('pg-copy-streams').to`
+foreign import __execStreamStdout :: String -> Client -> Effect (Readable ())
+
+-- | FFI binding to `import('pg-copy-streams').from`
+foreign import __execStreamStdin :: String -> Client -> Effect (Writable ())
