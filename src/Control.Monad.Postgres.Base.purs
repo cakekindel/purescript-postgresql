@@ -3,7 +3,7 @@ module Control.Monad.Postgres.Base where
 import Prelude
 
 import Control.Alt (class Alt)
-import Control.Alternative (class Plus)
+import Control.Alternative (class Alternative, class Plus)
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, catchError, throwError)
 import Control.Monad.Fork.Class (class MonadBracket, class MonadFork, class MonadKill, bracket, kill, never, uninterruptible)
 import Control.Monad.Morph (class MFunctor, class MMonad)
@@ -57,6 +57,7 @@ newtype PostgresT m a = PostgresT (ReaderT Pool m a)
 derive instance Newtype (PostgresT m a) _
 derive newtype instance (Functor m) => Functor (PostgresT m)
 derive newtype instance (Apply m) => Apply (PostgresT m)
+derive newtype instance (Alternative m) => Alternative (PostgresT m)
 derive newtype instance (Applicative m) => Applicative (PostgresT m)
 derive newtype instance (Plus m) => Plus (PostgresT m)
 derive newtype instance (Alt m) => Alt (PostgresT m)

@@ -3,7 +3,7 @@ module Control.Monad.Postgres.Cursor where
 import Prelude
 
 import Control.Alt (class Alt)
-import Control.Alternative (class Plus)
+import Control.Alternative (class Alternative, class Plus)
 import Control.Monad.Error.Class (class MonadError, class MonadThrow)
 import Control.Monad.Fork.Class (class MonadBracket, class MonadFork, class MonadKill, bracket, kill, never, uninterruptible)
 import Control.Monad.Postgres.Session (class MonadSession, exec, exec_, query, streamIn, streamOut)
@@ -39,6 +39,7 @@ derive newtype instance (Apply m) => Apply (CursorT t m)
 derive newtype instance (Applicative m) => Applicative (CursorT t m)
 derive newtype instance (Plus m) => Plus (CursorT t m)
 derive newtype instance (Alt m) => Alt (CursorT t m)
+derive newtype instance (Alternative m) => Alternative (CursorT t m)
 derive newtype instance (Bind m) => Bind (CursorT t m)
 derive newtype instance (Monad m) => Monad (CursorT t m)
 derive newtype instance (MonadEffect m) => MonadEffect (CursorT t m)
