@@ -105,7 +105,7 @@ instance (MonadBracket e f m, MonadAff m) => MonadSession (PostgresT m) where
 -- | - `session` - Session monad (for `PostgresT` this is `SessionT`)
 -- | - `cursor` - Cursor session monad (for `PostgresT` this is `CursorT`)
 -- | - `ct` - Open type parameter for cursor type. Don't pin this to a concrete type.
-class (MonadSession session, MonadCursor cursor ct) <= MonadPostgres m session cursor ct | m -> ct cursor session where
+class (Monad m, MonadSession session, MonadCursor cursor ct) <= MonadPostgres m session cursor ct | m -> ct cursor session where
   -- | Run a session in `m`.
   session :: session ~> m
   -- | Run a session in `m`, wrapped in a transaction.
