@@ -33,7 +33,7 @@ package:
     - newtype: ">=5.0.0 <6.0.0"
     - node-buffer: ">=9.0.0 <10.0.0"
     - node-event-emitter: ">=3.0.0 <4.0.0"
-    - node-stream-pipes: ">=1.0.2 <2.0.0"
+    - node-stream-pipes: ">=1.2.3 <2.0.0"
     - node-streams: ">=9.0.0 <10.0.0"
     - nullable: ">=6.0.0 <7.0.0"
     - parallel: ">=6.0.0 <7.0.0"

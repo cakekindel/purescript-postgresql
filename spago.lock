@@ -23,7 +23,7 @@ workspace:
         - newtype: ">=5.0.0 <6.0.0"
         - node-buffer: ">=9.0.0 <10.0.0"
         - node-event-emitter: ">=3.0.0 <4.0.0"
-        - node-stream-pipes: ">=1.0.2 <2.0.0"
+        - node-stream-pipes: ">=1.2.3 <2.0.0"
         - node-streams: ">=9.0.0 <10.0.0"
         - nullable: ">=6.0.0 <7.0.0"
         - parallel: ">=6.0.0 <7.0.0"
@@ -137,6 +137,7 @@ workspace:
         - unfoldable
         - unicode
         - unlift
+        - unordered-collections
         - unsafe-coerce
         - variant
   extra_packages: {}
@@ -727,8 +728,8 @@ packages:
       - unsafe-coerce
   node-stream-pipes:
     type: registry
-    version: 1.0.5
-    integrity: sha256-1icxdi6ocY4zs7iUYLmRzGiqNj/gDe1rgg2Qar9PkEU=
+    version: 1.2.3
+    integrity: sha256-lXD3x6+p72uBrRHGHrob2jrrBDakhhZE9O9EYE4aFiE=
     dependencies:
       - aff
       - arrays
@@ -736,6 +737,8 @@ packages:
       - either
       - exceptions
       - foldable-traversable
+      - foreign-object
+      - lists
       - maybe
       - mmorph
       - newtype
@@ -745,6 +748,7 @@ packages:
       - node-path
       - node-streams
       - node-zlib
+      - ordered-collections
       - parallel
       - pipes
       - prelude
@@ -752,6 +756,8 @@ packages:
       - strings
       - tailrec
       - transformers
+      - tuples
+      - unordered-collections
       - unsafe-coerce
   node-streams:
     type: registry
@@ -1178,6 +1184,21 @@ packages:
       - st
       - transformers
       - tuples
+  unordered-collections:
+    type: registry
+    version: 3.1.0
+    integrity: sha256-H2eQR+ylI+cljz4XzWfEbdF7ee+pnw2IZCeq69AuJ+Q=
+    dependencies:
+      - arrays
+      - enums
+      - functions
+      - integers
+      - lists
+      - prelude
+      - record
+      - tuples
+      - typelevel-prelude
+      - unfoldable
   unsafe-coerce:
     type: registry
     version: 6.0.0
