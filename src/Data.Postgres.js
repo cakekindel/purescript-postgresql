@@ -1,5 +1,9 @@
 import Pg from 'pg'
 import Range from 'postgres-range'
+import { Buffer } from 'buffer'
+
+/** @type {(a: unknown) => boolean} */
+export const isInstanceOfBuffer = a => a instanceof Buffer
 
 export const modifyPgTypes = () => {
   // https://github.com/brianc/node-pg-types/blob/master/lib/textParsers.js

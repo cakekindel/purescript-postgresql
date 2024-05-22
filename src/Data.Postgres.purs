@@ -3,7 +3,7 @@ module Data.Postgres where
 import Prelude
 
 import Control.Alt ((<|>))
-import Control.Monad.Error.Class (liftEither, liftMaybe)
+import Control.Monad.Error.Class (liftEither, liftMaybe, throwError)
 import Control.Monad.Except (ExceptT, runExceptT)
 import Control.Monad.Morph (hoist)
 import Control.Monad.Trans.Class (lift)
@@ -19,7 +19,7 @@ import Data.RFC3339String as DateTime.ISO
 import Data.Traversable (traverse)
 import Effect (Effect)
 import Effect.Exception (error)
-import Foreign (ForeignError(..), unsafeToForeign)
+import Foreign (ForeignError(..), tagOf, unsafeFromForeign, unsafeToForeign)
 import Foreign as F
 import JS.BigInt (BigInt)
 import JS.BigInt as BigInt
@@ -39,6 +39,8 @@ derive newtype instance ReadForeign a => ReadForeign (JSON a)
 -- | This mutates `import('pg').types`, setting deserialization
 -- | for some types to unmarshal as strings rather than JS values.
 foreign import modifyPgTypes :: Effect Unit
+
+foreign import isInstanceOfBuffer :: F.Foreign -> Boolean
 
 -- | The serialization & deserialization monad.
 type RepT = ExceptT (NonEmptyList ForeignError) Effect
@@ -142,7 +144,12 @@ instance ReadForeign a => Deserialize (JSON a) where
 
 -- | `bytea`
 instance Deserialize Buffer where
-  deserialize = (F.unsafeReadTagged "Buffer") <<< Raw.asForeign
+  deserialize =
+    let
+      notBuffer a = pure $ TypeMismatch (tagOf a) "Buffer"
+      readBuffer a = when (not $ isInstanceOfBuffer a) (throwError $ notBuffer a) $> unsafeFromForeign a
+    in
+      readBuffer <<< Raw.asForeign
 
 -- | `int2`, `int4`
 instance Deserialize Int where

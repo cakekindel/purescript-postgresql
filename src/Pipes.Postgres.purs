@@ -41,9 +41,9 @@ stdin q = do
 
     pipe = Pipes.mapM releaseOnEOS >-> fromWritable (O.fromBufferWritable stream)
     err e = do
-       liftAff $ void $ Client.exec "rollback" client
-       liftEffect $ Pool.release pool client
-       throwError e
+      liftAff $ void $ Client.exec "rollback" client
+      liftEffect $ Pool.release pool client
+      throwError e
 
   catchError pipe err
 
