@@ -23,7 +23,7 @@ workspace:
         - newtype: ">=5.0.0 <6.0.0"
         - node-buffer: ">=9.0.0 <10.0.0"
         - node-event-emitter: ">=3.0.0 <4.0.0"
-        - node-stream-pipes: ">=1.2.3 <2.0.0"
+        - node-stream-pipes: ">=1.5.0 <2.0.0"
         - node-streams: ">=9.0.0 <10.0.0"
         - nullable: ">=6.0.0 <7.0.0"
         - parallel: ">=6.0.0 <7.0.0"
@@ -728,8 +728,8 @@ packages:
       - unsafe-coerce
   node-stream-pipes:
     type: registry
-    version: 1.2.3
-    integrity: sha256-lXD3x6+p72uBrRHGHrob2jrrBDakhhZE9O9EYE4aFiE=
+    version: 1.5.0
+    integrity: sha256-kca0MJ8Pz4tXNpaw7CdysyNAgdbb8yqH1FhOoYbRm5s=
     dependencies:
       - aff
       - arrays

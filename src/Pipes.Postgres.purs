@@ -39,7 +39,7 @@ stdin q = do
       pure Nothing
     releaseOnEOS (Just a) = pure (Just a)
 
-    pipe = Pipes.mapM releaseOnEOS >-> fromWritable (O.fromBufferWritable stream)
+    pipe = Pipes.mapM releaseOnEOS >-> fromWritable (O.unsafeFromBufferWritable stream)
     err e = do
       liftAff $ void $ Client.exec "rollback" client
       liftEffect $ Pool.release pool client
@@ -62,4 +62,4 @@ stdout q = do
   let
     releaseOnEOS Nothing = liftEffect $ Pool.release pool client $> Nothing
     releaseOnEOS (Just a) = pure (Just a)
-  fromReadable (O.fromBufferReadable stream) >-> Pipes.mapM releaseOnEOS
+  fromReadable (O.unsafeFromBufferReadable stream) >-> Pipes.mapM releaseOnEOS
