@@ -23,6 +23,7 @@ import Node.EventEmitter as Event
 import Test.Control.Monad.Postgres as Test.Control.Monad.Postgres
 import Test.Data.Postgres as Test.Data.Postgres
 import Test.Data.Postgres.Custom as Test.Data.Postgres.Custom
+import Test.Data.Postgres.Interval as Test.Data.Postgres.Interval
 import Test.Effect.Postgres.Client as Test.Effect.Postgres.Client
 import Test.Effect.Postgres.Pool as Test.Effect.Postgres.Pool
 import Test.Spec.Reporter (specReporter)
@@ -65,6 +66,7 @@ main = launchAff_ do
     $ runSpec [ specReporter ] do
         Test.Data.Postgres.Custom.spec
         Test.Data.Postgres.spec
+        Test.Data.Postgres.Interval.spec
         Test.Effect.Postgres.Client.spec
         Test.Effect.Postgres.Pool.spec
         Test.Control.Monad.Postgres.spec

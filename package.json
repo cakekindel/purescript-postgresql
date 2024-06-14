@@ -15,6 +15,8 @@
     "decimal.js": "^10.4.3",
     "pg": "^8.11.3",
     "pg-copy-streams": "^6.0.6",
+    "pg-listen": "^1.7.0",
+    "postgres-interval": "1.2.0",
     "postgres-range": "^1.1.4"
   }
 }

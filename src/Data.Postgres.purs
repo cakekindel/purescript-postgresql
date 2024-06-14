@@ -9,13 +9,18 @@ import Control.Monad.Morph (hoist)
 import Control.Monad.Trans.Class (lift)
 import Data.Bifunctor (lmap)
 import Data.DateTime (DateTime)
+import Data.DateTime.Instant (Instant)
+import Data.DateTime.Instant as Instant
 import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
+import Data.Postgres.Interval (Interval)
+import Data.Postgres.Interval as Interval
 import Data.Postgres.Range (Range, __rangeFromRecord, __rangeRawFromRaw, __rangeRawFromRecord, __rangeRawToRecord, __rangeToRecord)
 import Data.Postgres.Raw (Null(..), Raw, jsNull)
 import Data.Postgres.Raw (unsafeFromForeign, asForeign) as Raw
 import Data.RFC3339String as DateTime.ISO
+import Data.Time.Duration (Days, Hours, Milliseconds, Minutes, Seconds)
 import Data.Traversable (traverse)
 import Effect (Effect)
 import Effect.Exception (error)
@@ -41,6 +46,7 @@ derive newtype instance ReadForeign a => ReadForeign (JSON a)
 foreign import modifyPgTypes :: Effect Unit
 
 foreign import isInstanceOfBuffer :: F.Foreign -> Boolean
+foreign import isInstanceOfInterval :: F.Foreign -> Boolean
 
 -- | The serialization & deserialization monad.
 type RepT = ExceptT (NonEmptyList ForeignError) Effect
@@ -69,6 +75,9 @@ instance (Serialize a, Deserialize a) => Rep a
 -- | SQL type.
 unsafeSerializeCoerce :: forall m a. Monad m => a -> m Raw
 unsafeSerializeCoerce = pure <<< Raw.unsafeFromForeign <<< F.unsafeToForeign
+
+invalidDuration :: NonEmptyList ForeignError
+invalidDuration = pure $ ForeignError $ "Can't convert interval with year or month components to Milliseconds"
 
 instance Serialize Raw where
   serialize = pure
@@ -109,9 +118,37 @@ instance Serialize String where
 instance Serialize Number where
   serialize = unsafeSerializeCoerce
 
--- | `timestamp`, `timestamptz`
+-- | `interval`
 instance Serialize DateTime where
   serialize = serialize <<< unwrap <<< DateTime.ISO.fromDateTime
+
+-- | `interval`
+instance Serialize Interval where
+  serialize = unsafeSerializeCoerce
+
+-- | `interval`
+instance Serialize Milliseconds where
+  serialize = serialize <<< Interval.fromDuration
+
+-- | `interval`
+instance Serialize Seconds where
+  serialize = serialize <<< Interval.fromDuration
+
+-- | `interval`
+instance Serialize Minutes where
+  serialize = serialize <<< Interval.fromDuration
+
+-- | `interval`
+instance Serialize Hours where
+  serialize = serialize <<< Interval.fromDuration
+
+-- | `interval`
+instance Serialize Days where
+  serialize = serialize <<< Interval.fromDuration
+
+-- | `timestamp`, `timestamptz`
+instance Serialize Instant where
+  serialize = serialize <<< Instant.toDateTime
 
 -- | `Just` -> `a`, `Nothing` -> `NULL`
 instance Serialize a => Serialize (Maybe a) where
@@ -151,6 +188,35 @@ instance Deserialize Buffer where
     in
       readBuffer <<< Raw.asForeign
 
+-- | `interval`
+instance Deserialize Interval where
+  deserialize =
+    let
+      notInterval a = pure $ TypeMismatch (tagOf a) "Interval"
+      readInterval a = when (not $ isInstanceOfInterval a) (throwError $ notInterval a) $> unsafeFromForeign a
+    in
+      readInterval <<< Raw.asForeign
+
+-- | `interval`
+instance Deserialize Milliseconds where
+  deserialize = flip bind (liftMaybe invalidDuration) <<< map Interval.toDuration <<< deserialize
+
+-- | `interval`
+instance Deserialize Seconds where
+  deserialize = flip bind (liftMaybe invalidDuration) <<< map Interval.toDuration <<< deserialize
+
+-- | `interval`
+instance Deserialize Minutes where
+  deserialize = flip bind (liftMaybe invalidDuration) <<< map Interval.toDuration <<< deserialize
+
+-- | `interval`
+instance Deserialize Hours where
+  deserialize = flip bind (liftMaybe invalidDuration) <<< map Interval.toDuration <<< deserialize
+
+-- | `interval`
+instance Deserialize Days where
+  deserialize = flip bind (liftMaybe invalidDuration) <<< map Interval.toDuration <<< deserialize
+
 -- | `int2`, `int4`
 instance Deserialize Int where
   deserialize = F.readInt <<< Raw.asForeign
@@ -182,6 +248,10 @@ instance Deserialize DateTime where
     s :: String <- deserialize raw
     let invalid = pure $ ForeignError $ "Not a valid ISO8601 string: `" <> s <> "`"
     liftMaybe invalid $ DateTime.ISO.toDateTime $ wrap s
+
+-- | `timestamp`, `timestamptz`
+instance Deserialize Instant where
+  deserialize = map Instant.fromDateTime <<< deserialize
 
 -- | postgres `array`
 instance Deserialize a => Deserialize (Array a) where

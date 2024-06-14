@@ -1,9 +1,24 @@
 import Pg from 'pg'
 import Range from 'postgres-range'
 import { Buffer } from 'buffer'
+import PostgresInterval from 'postgres-interval'
 
 /** @type {(a: unknown) => boolean} */
 export const isInstanceOfBuffer = a => a instanceof Buffer
+
+/** @type {(a: unknown) => boolean} */
+export const isInstanceOfInterval = a => {
+  return typeof a === 'object'
+    && a !== null
+    && ('years' in a
+    || 'months' in a
+    || 'days' in a
+    || 'hours' in a
+    || 'minutes' in a
+    || 'seconds' in a
+    || 'milliseconds' in a
+    )
+}
 
 export const modifyPgTypes = () => {
   // https://github.com/brianc/node-pg-types/blob/master/lib/textParsers.js
