@@ -23,7 +23,7 @@ workspace:
         - newtype: ">=5.0.0 <6.0.0"
         - node-buffer: ">=9.0.0 <10.0.0"
         - node-event-emitter: ">=3.0.0 <4.0.0"
-        - node-stream-pipes: ">=1.5.0 <2.0.0"
+        - node-stream-pipes: ">=2.0.2 <3.0.0"
         - node-streams: ">=9.0.0 <10.0.0"
         - nullable: ">=6.0.0 <7.0.0"
         - parallel: ">=6.0.0 <7.0.0"
@@ -728,16 +728,20 @@ packages:
       - unsafe-coerce
   node-stream-pipes:
     type: registry
-    version: 1.5.0
-    integrity: sha256-kca0MJ8Pz4tXNpaw7CdysyNAgdbb8yqH1FhOoYbRm5s=
+    version: 2.0.2
+    integrity: sha256-IwkFgzWVwqjZkQRLYBGaRukKqYIw2I7wKHwIXRcdBWI=
     dependencies:
       - aff
       - arrays
+      - console
+      - control
+      - datetime
       - effect
       - either
       - exceptions
       - foldable-traversable
       - foreign-object
+      - fork
       - lists
       - maybe
       - mmorph
@@ -748,10 +752,12 @@ packages:
       - node-path
       - node-streams
       - node-zlib
+      - now
       - ordered-collections
       - parallel
       - pipes
       - prelude
+      - profunctor
       - st
       - strings
       - tailrec
