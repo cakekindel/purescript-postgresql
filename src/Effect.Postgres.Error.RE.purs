@@ -67,7 +67,7 @@ derive newtype instance MonadEffect m => MonadEffect (RE r m)
 derive newtype instance MonadAff m => MonadAff (RE r m)
 derive newtype instance MonadRec m => MonadRec (RE r m)
 
-instance Parallel p m => Parallel (ParRE r p) (RE r m) where
+instance (Monad m, Parallel p m) => Parallel (ParRE r p) (RE r m) where
   parallel = wrap <<< parallel <<< unwrap
   sequential = wrap <<< sequential <<< unwrap
 
