@@ -3,6 +3,7 @@ module Effect.Postgres.Error.RE where
 import Prelude hiding (join)
 
 import Control.Alt (class Alt)
+import Control.Alternative (class Alternative, class Plus)
 import Control.Monad.Base (class MonadBase)
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, catchError, liftEither, throwError)
 import Control.Monad.Except (ExceptT, runExceptT)
@@ -52,6 +53,9 @@ derive instance Newtype (ParRE r m a) _
 derive newtype instance Functor m => Functor (ParRE r m)
 derive newtype instance Apply m => Apply (ParRE r m)
 derive newtype instance Applicative m => Applicative (ParRE r m)
+derive newtype instance Alt m => Alt (ParRE r m)
+derive newtype instance Plus m => Plus (ParRE r m)
+derive newtype instance Alternative m => Alternative (ParRE r m)
 
 derive instance Newtype (RE r m a) _
 derive newtype instance Monad m => MonadAsk r (RE r m)
