@@ -34,7 +34,7 @@ newtype RE r m a = RE (ReaderT r (ExceptT E m) a)
 
 newtype ParRE r f a = ParRE (ReaderT r (Compose f (Either E)) a)
 
-finally :: forall r f m a. MonadBracket Effect.Error f m => RE r m Unit -> RE r m a -> RE r m a
+finally :: forall r m a. Monad m => RE r m Unit -> RE r m a -> RE r m a
 finally after m = (m <* after) `catchError` \e -> after *> throwError e
 
 run :: forall m r a. MonadThrow Effect.Error m => RE r m a -> r -> m a

@@ -71,8 +71,7 @@ class (Monad m, MonadSession session, MonadCursor cursor ct) <= MonadPostgres m 
   cursorWith :: forall q. AsQuery q => (Array Raw -> RepT ct) -> String -> q -> cursor ~> m
 
 instance
-  ( MonadBracket Effect.Error f m
-  , MonadAff m
+  ( MonadAff m
   , MonadSession (SessionT m)
   , MonadCursor (CursorT t (SessionT m)) t
   ) => MonadPostgres

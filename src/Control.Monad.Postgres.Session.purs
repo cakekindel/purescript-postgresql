@@ -17,6 +17,7 @@ import Effect.Aff.Postgres.Client (Client)
 import Effect.Aff.Postgres.Client as Client
 import Effect.Aff.Postgres.Pool (Pool)
 import Effect.Aff.Postgres.Pool as Pool
+import Effect.Aff.Unlift (class MonadUnliftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Exception as Effect
 import Effect.Postgres.Error (RE)
@@ -70,7 +71,7 @@ class MonadAff m <= MonadSession m where
   -- | ```
   streamOut :: String -> m (Readable ())
 
-instance (MonadStartSession s, MonadBracket Effect.Error f m, MonadAff m) => MonadSession (RE s m) where
+instance (MonadStartSession s, MonadAff m) => MonadSession (RE s m) where
   query q = do
     pool <- ask
     client <- hoist liftAff $ RE.liftExcept $ startSession pool
