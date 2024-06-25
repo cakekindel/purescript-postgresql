@@ -2,7 +2,7 @@ module Data.Postgres.Result where
 
 import Prelude
 
-import Control.Monad.Error.Class (liftMaybe, throwError)
+import Control.Monad.Error.Class (catchError, liftMaybe, throwError)
 import Data.Array as Array
 import Data.Generic.Rep (class Generic)
 import Data.Int as Int
@@ -43,9 +43,9 @@ class FromRows a where
 instance FromRows RowsAffected where
   fromRows a _ = pure a
 else instance (FromRow a) => FromRows (Array a) where
-  fromRows _ = traverse fromRow
+  fromRows _ = traverse (fromRow 0)
 else instance (FromRow a) => FromRows (Maybe a) where
-  fromRows _ = map Array.head <<< traverse fromRow
+  fromRows _ = map Array.head <<< traverse (fromRow 0)
 else instance (FromRow a) => FromRows a where
   fromRows a =
     let
@@ -89,29 +89,34 @@ class FromRow (a :: Type) where
   -- | Minimum length of row for type `a`
   minColumnCount :: forall g. g a -> Int
   -- | Performs the conversion
-  fromRow :: Array Raw -> RepT a
+  fromRow :: Int -> Array Raw -> RepT a
 
 instance (Deserialize a, FromRow b) => FromRow (a /\ b) where
   minColumnCount _ = minColumnCount (Proxy @b) + 1
-  fromRow r =
+  fromRow n r =
     let
       minLen = minColumnCount (Proxy @(Tuple a b))
       lengthMismatch = pure $ TypeMismatch ("Expected row to have at least " <> show minLen <> " columns") ("Found row of length " <> show (Array.length r))
     in
       do
+        let
+          de a =
+            catchError
+              (deserialize @a a)
+              (\e -> throwError $ ErrorAtIndex n <$> e)
         when (Array.length r < minLen) (throwError lengthMismatch)
-        a <- deserialize =<< liftMaybe lengthMismatch (Array.head r)
-        b <- fromRow =<< liftMaybe lengthMismatch (Array.tail r)
+        a <- de =<< liftMaybe lengthMismatch (Array.head r)
+        b <- fromRow (n + 1) =<< liftMaybe lengthMismatch (Array.tail r)
         pure $ a /\ b
 else instance FromRow (Array Raw) where
   minColumnCount _ = 0
-  fromRow = pure
+  fromRow _ = pure
 else instance FromRow Unit where
   minColumnCount _ = 0
-  fromRow _ = pure unit
+  fromRow _ _ = pure unit
 else instance Deserialize a => FromRow a where
   minColumnCount _ = 1
-  fromRow r =
+  fromRow _ r =
     let
       err = pure $ TypeMismatch "Expected row of length >= 1" "Empty row"
     in

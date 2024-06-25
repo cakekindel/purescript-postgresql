@@ -15,11 +15,13 @@ workspace:
         - foldable-traversable: ">=6.0.0 <7.0.0"
         - foreign: ">=7.0.0 <8.0.0"
         - fork: ">=6.0.0 <7.0.0"
+        - functors
         - integers: ">=6.0.0 <7.0.0"
         - js-bigints: ">=2.2.1 <3.0.0"
         - lists: ">=7.0.0 <8.0.0"
         - maybe: ">=6.0.0 <7.0.0"
         - mmorph: ">=7.0.0 <8.0.0"
+        - monad-control
         - newtype: ">=5.0.0 <6.0.0"
         - node-buffer: ">=9.0.0 <10.0.0"
         - node-event-emitter: ">=3.0.0 <4.0.0"
@@ -33,6 +35,7 @@ workspace:
         - prelude: ">=6.0.1 <7.0.0"
         - profunctor: ">=6.0.1 <7.0.0"
         - record: ">=4.0.0 <5.0.0"
+        - refs
         - simple-json: ">=9.0.0 <10.0.0"
         - strings: ">=6.0.1 <7.0.0"
         - tailrec: ">=6.1.0 <7.0.0"
@@ -728,8 +731,8 @@ packages:
       - unsafe-coerce
   node-stream-pipes:
     type: registry
-    version: 2.1.0
-    integrity: sha256-pYBOQY4bGEZzI5UHsUxJAhsKqtmE6CC1sHmFqgj64V8=
+    version: 2.1.1
+    integrity: sha256-j7ZE+Vtc9gwXlH8s8pyVsbbCMd91AIRk05IOsZAO7x0=
     dependencies:
       - aff
       - arrays

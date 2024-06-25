@@ -13,6 +13,9 @@ package:
     strict: true
     pedanticPackages: true
   dependencies:
+    - functors
+    - monad-control
+    - refs
     - aff: ">=7.1.0 <8.0.0"
     - aff-promise: ">=4.0.0 <5.0.0"
     - arrays: ">=7.3.0 <8.0.0"

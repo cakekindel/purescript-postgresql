@@ -5,7 +5,7 @@ import Prelude
 import Data.Either (Either(..))
 import Data.String.Regex (Regex)
 import Data.String.Regex as Regex
-import Data.String.Regex.Flags (RegexFlags(..))
+import Data.String.Regex.Flags (RegexFlags)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff (Aff, bracket, makeAff)
@@ -14,14 +14,13 @@ import Effect.Aff.Postgres.Client as Client
 import Effect.Aff.Postgres.Pool (Pool)
 import Effect.Aff.Postgres.Pool as Pool
 import Effect.Class (liftEffect)
+import Effect.Postgres.Error.Except as X
 import Effect.Unsafe (unsafePerformEffect)
-import Node.EventEmitter (EventHandle(..))
+import Node.EventEmitter (EventHandle)
 import Node.EventEmitter as EE
 import Node.Path as Path
 import Node.Process (cwd)
 import Partial.Unsafe (unsafePartial)
-import Record (insert)
-import Type.Prelude (Proxy(..))
 
 type Config =
   { database :: String
@@ -41,16 +40,16 @@ withConfig :: (Config -> Aff Unit) -> Aff Unit
 withConfig f = f =<< liftEffect config
 
 withClient :: (Client -> Aff Unit) -> Aff Unit
-withClient = bracket (Client.connected =<< liftEffect config) Client.end
+withClient = bracket (X.run $ Client.connected =<< liftEffect config) (X.run <<< Client.end)
 
 pool :: Pool
 pool = unsafePerformEffect $ Pool.make =<< liftEffect config
 
 withPool :: (Pool -> Aff Unit) -> Aff Unit
-withPool = bracket (liftEffect $ Pool.make =<< config) Pool.end
+withPool = bracket (liftEffect $ Pool.make =<< config) (X.run <<< Pool.end)
 
 withPoolClient :: (Client -> Aff Unit) -> Aff Unit
-withPoolClient = bracket (Pool.connect pool) (liftEffect <<< Pool.release pool)
+withPoolClient = bracket (X.run $ Pool.connect pool) (liftEffect <<< X.run <<< Pool.release pool)
 
 unsafeFromRight :: forall a b. Either a b -> b
 unsafeFromRight e = unsafePartial $ case e of Right b -> b

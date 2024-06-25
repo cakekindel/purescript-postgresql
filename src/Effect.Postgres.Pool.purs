@@ -9,6 +9,8 @@ import Effect (Effect)
 import Effect.Exception (Error)
 import Effect.Postgres.Client (Client)
 import Effect.Postgres.Client as Client
+import Effect.Postgres.Error as E
+import Effect.Postgres.Error.Except as E.Except
 import Effect.Uncurried (EffectFn2, mkEffectFn1, mkEffectFn2)
 import Foreign (Foreign, unsafeToForeign)
 import Node.EventEmitter (EventHandle(..))
@@ -46,12 +48,12 @@ make r = do
   __make $ __uncfg { unwrapMillis: unwrap } $ unsafeToForeign asClientConfig
 
 -- | <https://node-postgres.com/apis/pool#releasing-clients>
-release :: Pool -> Client -> Effect Unit
-release p c = __release p c false
+release :: Pool -> Client -> E.Except Effect Unit
+release p c = E.Except.with E.Disconnecting $ __release p c false
 
 -- | <https://node-postgres.com/apis/pool#releasing-clients>
-destroy :: Pool -> Client -> Effect Unit
-destroy p c = __release p c true
+destroy :: Pool -> Client -> E.Except Effect Unit
+destroy p c = E.Except.with E.Disconnecting $ __release p c true
 
 -- | <https://node-postgres.com/apis/pool#connect>
 connectE :: EventHandle1 Pool Client

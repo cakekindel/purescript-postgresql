@@ -31,6 +31,7 @@ import Effect.Aff (Aff)
 import Effect.Aff.Postgres.Client (exec, query)
 import Effect.Class (liftEffect)
 import Effect.Postgres.Client (Client)
+import Effect.Postgres.Error.Except as X
 import Effect.Unsafe (unsafePerformEffect)
 import Foreign (Foreign, unsafeToForeign)
 import Foreign.Object as Object
@@ -206,13 +207,13 @@ spec =
               x' <- Q.param $ fromArb x
               let val = x' <> " :: " <> sql
               pure $ "select " <> val
-        void $ exec createtab c
+        void $ X.run $ exec createtab c
         seed <- liftEffect randomSeed
         let xs = sample seed 10 (arbitrary @x)
         flip parTraverse_ xs
           \x -> do
-            void $ exec (ser x) c
-            res <- query (de x) c
+            void $ X.run $ exec (ser x) c
+            res <- X.run $ query (de x) c
             let
               exp = fromArb x
               act = unsafePartial fromJust $ Array.head res
