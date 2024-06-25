@@ -3,7 +3,6 @@ module Control.Monad.Postgres.Session where
 import Prelude hiding (join)
 
 import Control.Monad.Error.Class (class MonadError, catchError, throwError)
-import Control.Monad.Fork.Class (class MonadBracket)
 import Control.Monad.Morph (hoist)
 import Control.Monad.Reader (ask)
 import Control.Monad.Trans.Class (lift)
@@ -17,9 +16,7 @@ import Effect.Aff.Postgres.Client (Client)
 import Effect.Aff.Postgres.Client as Client
 import Effect.Aff.Postgres.Pool (Pool)
 import Effect.Aff.Postgres.Pool as Pool
-import Effect.Aff.Unlift (class MonadUnliftAff)
 import Effect.Class (class MonadEffect, liftEffect)
-import Effect.Exception as Effect
 import Effect.Postgres.Error (RE)
 import Effect.Postgres.Error as E
 import Effect.Postgres.Error.Except as X
