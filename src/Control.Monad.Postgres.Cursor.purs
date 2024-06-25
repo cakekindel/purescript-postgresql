@@ -22,7 +22,6 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Aff.Class (class MonadAff)
 import Effect.Aff.Unlift (class MonadUnliftAff)
 import Effect.Class (class MonadEffect, liftEffect)
-import Effect.Postgres.Error as E
 import Effect.Unlift (class MonadUnliftEffect)
 
 data Move
@@ -119,7 +118,7 @@ instance (MonadSession m) => MonadCursor (CursorT t m) t where
     RowsAffected n' <- query $ ("move relative $1 from " <> cur) /\ n
     pure n'
 
-instance (MonadThrow E.E m, MonadSession m) => MonadSession (CursorT t m) where
+instance (MonadSession m) => MonadSession (CursorT t m) where
   query = lift <<< query
   exec = lift <<< exec
   exec_ = lift <<< exec_

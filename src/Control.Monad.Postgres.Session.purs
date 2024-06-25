@@ -2,7 +2,7 @@ module Control.Monad.Postgres.Session where
 
 import Prelude hiding (join)
 
-import Control.Monad.Error.Class (class MonadError, class MonadThrow, catchError, throwError)
+import Control.Monad.Error.Class (class MonadError, catchError, throwError)
 import Control.Monad.Fork.Class (class MonadBracket)
 import Control.Monad.Morph (hoist)
 import Control.Monad.Reader (ask)
@@ -44,7 +44,7 @@ instance MonadStartSession Client where
   endSession _ _ = pure unit
 
 -- | A monad representing a connected session to a database
-class (MonadThrow E.E m, MonadAff m) <= MonadSession m where
+class MonadAff m <= MonadSession m where
   -- | Executes a query and unmarshals the result into `r`
   query :: forall q r. AsQuery q => FromRows r => q -> m r
   -- | Executes a query and returns the number of rows affected
