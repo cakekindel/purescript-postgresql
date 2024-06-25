@@ -665,7 +665,7 @@ packages:
       - unsafe-coerce
   node-fs:
     type: registry
-    version: 9.1.0
+    version: 9.2.0
     integrity: sha256-Sg0vkXycEzkEerX6hLccz21Ygd9w1+QSk1thotRZPGI=
     dependencies:
       - datetime
