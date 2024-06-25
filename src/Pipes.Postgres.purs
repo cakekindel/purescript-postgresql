@@ -6,11 +6,10 @@ import Control.Monad.Cont (lift)
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, catchError, throwError)
 import Control.Monad.Morph (hoist)
 import Control.Monad.Postgres (PostgresT)
-import Control.Monad.Reader (class MonadAsk, ask)
+import Control.Monad.Reader (ask)
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff.Postgres.Client as Client
-import Effect.Aff.Postgres.Pool (Pool)
 import Effect.Aff.Postgres.Pool as Pool
 import Effect.Class (liftEffect)
 import Effect.Exception (Error)
@@ -26,7 +25,6 @@ stdin
   :: forall m
    . MonadAff m
   => MonadError Error m
-  => MonadAsk Pool m
   => String
   -> Consumer (Maybe Buffer) (PostgresT m) Unit
 stdin q = do
