@@ -665,8 +665,8 @@ packages:
       - unsafe-coerce
   node-fs:
     type: registry
-    version: 9.1.0
-    integrity: sha256-TzhvGdrwcM0bazDvrWSqh+M/H8GKYf1Na6aGm2Qg4+c=
+    version: 9.2.0
+    integrity: sha256-Sg0vkXycEzkEerX6hLccz21Ygd9w1+QSk1thotRZPGI=
     dependencies:
       - datetime
       - effect
@@ -731,8 +731,8 @@ packages:
       - unsafe-coerce
   node-stream-pipes:
     type: registry
-    version: 2.1.1
-    integrity: sha256-j7ZE+Vtc9gwXlH8s8pyVsbbCMd91AIRk05IOsZAO7x0=
+    version: 2.1.4
+    integrity: sha256-/DyKe03WTu5e4EJ5Ym7lvRhakhztLtNhy8fccE8+Ouw=
     dependencies:
       - aff
       - arrays
