@@ -25,6 +25,7 @@ import Test.Data.Postgres as Test.Data.Postgres
 import Test.Data.Postgres.Custom as Test.Data.Postgres.Custom
 import Test.Data.Postgres.Interval as Test.Data.Postgres.Interval
 import Test.Effect.Postgres.Client as Test.Effect.Postgres.Client
+import Test.Effect.Postgres.Error as Test.Effect.Postgres.Error
 import Test.Effect.Postgres.Pool as Test.Effect.Postgres.Pool
 import Test.Spec.Reporter (specReporter)
 import Test.Spec.Runner (runSpec)
@@ -64,6 +65,7 @@ main = launchAff_ do
   bracket spawnDb killDb
     $ const
     $ runSpec [ specReporter ] do
+        Test.Effect.Postgres.Error.spec
         Test.Data.Postgres.Custom.spec
         Test.Data.Postgres.spec
         Test.Data.Postgres.Interval.spec

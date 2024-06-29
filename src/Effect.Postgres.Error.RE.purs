@@ -5,26 +5,32 @@ import Prelude hiding (join)
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative, class Plus)
 import Control.Monad.Base (class MonadBase)
-import Control.Monad.Error.Class (class MonadError, class MonadThrow, catchError, liftEither, throwError)
+import Control.Monad.Error.Class (class MonadError, class MonadThrow, catchError, liftEither, liftMaybe, throwError)
 import Control.Monad.Except (ExceptT, runExceptT)
-import Control.Monad.Fork.Class (class MonadBracket, class MonadFork, class MonadKill, BracketCondition, bracket, fork, join, kill, never, suspend, uninterruptible)
+import Control.Monad.Fork.Class (class MonadBracket, class MonadFork, class MonadKill, bracket, fork, join, kill, never, suspend, uninterruptible)
 import Control.Monad.Fork.Class as Bracket
 import Control.Monad.Morph (class MFunctor, class MMonad, embed, hoist)
-import Control.Monad.Reader (class MonadAsk, class MonadReader, ReaderT(..), runReaderT)
+import Control.Monad.Reader (class MonadAsk, class MonadReader, ReaderT(..), ask, runReaderT)
 import Control.Monad.Rec.Class (class MonadRec)
 import Control.Monad.Trans.Class (class MonadTrans, lift)
-import Control.Monad.Unlift (class MonadUnlift, withRunInBase)
+import Control.Monad.Unlift (class MonadUnlift)
 import Control.Parallel (class Parallel, parallel, sequential)
+import Data.Array.NonEmpty as Array.NonEmpty
 import Data.Bifunctor (lmap)
-import Data.Either (Either)
-import Data.Functor.Compose (Compose)
+import Data.Either (Either, blush, hush)
+import Data.Functor.Compose (Compose(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
-import Effect.Aff.Class (class MonadAff)
+import Data.Traversable (for_, traverse_)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff.Unlift (class MonadUnliftAff, withRunInAff)
-import Effect.Class (class MonadEffect)
+import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Exception as Effect
+import Effect.Exception as Exception
 import Effect.Postgres.Error.Common (E, Error(..), toException)
 import Effect.Postgres.Error.Except (Except)
+import Effect.Postgres.Error.Except as E
+import Effect.Ref as Ref
 import Effect.Unlift (class MonadUnliftEffect, withRunInEffect)
 
 -- | `ReaderT` with `ExceptT E`
@@ -67,9 +73,13 @@ derive newtype instance Monad m => Bind (RE r m)
 derive newtype instance Monad m => Monad (RE r m)
 derive newtype instance Monad m => MonadError E (RE r m)
 derive newtype instance Monad m => MonadThrow E (RE r m)
-derive newtype instance MonadEffect m => MonadEffect (RE r m)
-derive newtype instance MonadAff m => MonadAff (RE r m)
 derive newtype instance MonadRec m => MonadRec (RE r m)
+
+instance MonadEffect m => MonadEffect (RE r m) where
+  liftEffect m = hoist liftEffect $ liftExcept $ E.exception m
+
+instance MonadAff m => MonadAff (RE r m) where
+  liftAff m = hoist liftAff $ liftExcept $ E.exception m
 
 instance (Monad m, Parallel p m) => Parallel (ParRE r p) (RE r m) where
   parallel = wrap <<< parallel <<< unwrap
@@ -101,20 +111,47 @@ instance (MonadBase m (RE r m), MonadThrow Effect.Error m) => MonadUnlift m (RE 
 instance Monad m => MonadBase m (RE r m) where
   liftBase = lift
 
-instance (MonadThrow Effect.Error m, MonadFork f m) => MonadFork f (RE r m) where
-  fork m = withRunInBase \f -> fork $ f m
-  suspend m = withRunInBase \f -> suspend $ f m
-  join f = lift $ join f
+instance (MonadThrow Effect.Error m, MonadFork f m) => MonadFork (Compose f (Either E)) (RE r m) where
+  fork m = RE $ ReaderT \r -> lift $ Compose <$> fork (toEither m r)
+  suspend m = RE $ ReaderT \r -> lift $ Compose <$> suspend (toEither m r)
+  join f = liftEither =<< lift (join $ unwrap f)
 
-instance (MonadKill Effect.Error f m) => MonadKill E f (RE r m) where
-  kill e f = lift $ kill (toException e) f
+instance (MonadKill Effect.Error f m) => MonadKill E (Compose f (Either E)) (RE r m) where
+  kill e f = lift $ kill (toException e) (unwrap f)
 
-instance (MonadBracket Effect.Error f m) => MonadBracket E f (RE r m) where
-  bracket acq rel m = withRunInBase \f -> bracket (f acq) (\c r -> f $ rel ((bracketCondError (pure <<< Other)) c) r) (f <<< m)
+instance (MonadEffect m, MonadBracket Effect.Error f m) => MonadBracket E (Compose f (Either E)) (RE r m) where
+  bracket acq rel go = do
+    r <- ask
+
+    errs <- liftEffect $ Ref.new []
+
+    let
+      eErrsEmpty = pure $ Other $ Exception.error "no errors"
+      appendErrs = liftEffect <<< flip Ref.modify_ errs <<< (<>) <<< Array.NonEmpty.toArray
+      readErrs = liftEffect $ Array.NonEmpty.fromArray <$> Ref.read errs
+
+      run' :: forall a. RE r m a -> m (Maybe a)
+      run' m = do
+        either <- toEither m r
+        traverse_ appendErrs $ blush either
+        pure $ hush either
+
+      rel' _ Nothing = pure unit
+      rel' (Bracket.Failed e) (Just a) = void $ run' $ rel (Bracket.Failed $ pure $ Other e) a
+      rel' (Bracket.Killed e) (Just a) = void $ run' $ rel (Bracket.Killed $ pure $ Other e) a
+      rel' (Bracket.Completed (Just ret)) (Just a) = void $ run' $ rel (Bracket.Completed ret) a
+      rel' (Bracket.Completed Nothing) (Just a) = void $ run' do
+        errs' <- fromMaybe eErrsEmpty <$> readErrs
+        rel (Bracket.Failed errs') a
+
+      acq' = run' acq
+
+      go' (Just a) = run' $ go a
+      go' Nothing = pure Nothing
+
+    ret <- lift $ bracket acq' rel' go'
+    errs' <- readErrs
+    for_ errs' throwError
+    liftMaybe eErrsEmpty ret
   uninterruptible = hoist uninterruptible
   never = lift never
-
-bracketCondError :: forall ea eb a. (ea -> eb) -> BracketCondition ea a -> BracketCondition eb a
-bracketCondError _ (Bracket.Completed a) = Bracket.Completed a
-bracketCondError f (Bracket.Failed a) = Bracket.Failed $ f a
-bracketCondError f (Bracket.Killed a) = Bracket.Killed $ f a

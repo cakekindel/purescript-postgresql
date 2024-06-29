@@ -4,6 +4,7 @@ import Prelude
 
 import Control.Monad.Error.Class (class MonadError, class MonadThrow, liftEither, try)
 import Control.Monad.Except (ExceptT(..), runExceptT)
+import Control.Monad.Morph (hoist)
 import Data.Bifunctor (lmap)
 import Data.Either (Either)
 import Data.Postgres (RepT)
@@ -29,11 +30,15 @@ withEither e m = ExceptT $ map (lmap $ pure <<< e) $ m
 exception :: forall m a. MonadError Effect.Error m => m a -> Except m a
 exception = with Other
 
-parsing :: forall m a. MonadEffect m => Query -> RepT a -> Except m a
-parsing q = withEither (Deserializing q) <<< liftEffect <<< runExceptT
-
-printing :: forall m a. MonadEffect m => RepT a -> Except m a
-printing = withEither Serializing <<< liftEffect <<< runExceptT
-
 executing :: forall m a. MonadError Effect.Error m => Query -> m a -> Except m a
 executing q = with (Executing q)
+
+parsing :: forall m a. MonadEffect m => Query -> RepT a -> Except m a
+parsing q m = do
+  e <- hoist liftEffect $ exception $ runExceptT m
+  withEither (Deserializing q) (pure e)
+
+printing :: forall m a. MonadEffect m => RepT a -> Except m a
+printing m = do
+  e <- hoist liftEffect $ exception $ runExceptT m
+  withEither Serializing (pure e)
