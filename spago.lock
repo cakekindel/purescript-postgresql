@@ -1121,8 +1121,8 @@ packages:
       - refs
   transformers:
     type: registry
-    version: 6.0.0
-    integrity: sha256-Pzw40HjthX77tdPAYzjx43LK3X5Bb7ZspYAp27wksFA=
+    version: 6.1.0
+    integrity: sha256-3Bm+Z6tsC/paG888XkywDngJ2JMos+JfOhRlkVfb7gI=
     dependencies:
       - control
       - distributive
@@ -1135,6 +1135,7 @@ packages:
       - maybe
       - newtype
       - prelude
+      - st
       - tailrec
       - tuples
       - unfoldable
