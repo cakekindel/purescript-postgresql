@@ -1,7 +1,7 @@
 package:
   name: postgresql
   publish:
-    version: '2.0.17'
+    version: '2.0.18'
     license: 'GPL-3.0-or-later'
     location:
       githubOwner: 'cakekindel'
@@ -67,4 +67,5 @@ package:
       - spec
       - spec-quickcheck
 workspace:
-  extraPackages: {}
+  packageSet:
+    registry: 55.1.0
