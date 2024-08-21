@@ -9,7 +9,6 @@ import Data.Generic.Rep (class Generic)
 import Data.Maybe (maybe)
 import Data.Newtype (wrap)
 import Data.Postgres.Query (Query)
-import Data.Show.Generic (genericShow)
 import Data.String as String
 import Effect.Exception as Effect
 import Foreign (MultipleErrors)

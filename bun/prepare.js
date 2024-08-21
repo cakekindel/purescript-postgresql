@@ -20,7 +20,7 @@ await writeFile('./spago.yaml', spagonew)
 
 const readme = await readFile('./README.md', 'utf8')
 const readmenew = readme.replace(
-  /packages\/purescript-postgresql\/.+?\//g,
+  /\/packages\/purescript-postgresql\/.+?\//g,
   `/packages/purescript-postgresql/${ver}/`,
 )
 await writeFile('./README.md', readmenew)

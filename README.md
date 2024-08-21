@@ -5,7 +5,6 @@ Purescript PostgreSQL driver
 ## Table of Contents
  - [Getting Started](#getting-started)
  - [Data](#data)
-   - [Rows](#data---rows)
    - [Ranges](#data---ranges)
  - [Queries](#queries)
    - [Builder](#queries---builder)
@@ -79,45 +78,54 @@ class MonadSession m where
 ```
 
 ## Data
-Single SQL values are serialized to and deserialized from JS via [`pg-types`]
-(with some [tweaks][`modifyPgTypes`]).
+Scalar values are serialized & deserialized using the `Serialize` / `Deserialize` typeclasses.
+Implemented for `Int`, `String`, `DateTime`, `Buffer`, `BigInt`, `Boolean`, `Number`, `Array`, [`Range`]s, `Maybe`, [`Null`] and `Unit`.
 
-The conversion between [`Raw`] JS values and purescript values is done
-with the [`Serialize`] and [`Deserialize`] typeclasses.
+There aren't any typeclass instances for unmarshalling rows by design. The rationale: as apps grow we often need to ask more of a relational database than just CRUD operations. Queries tend to be somewhat living, with joins and columns being added and removed, so it should be easy to modify queries and reflect the change in the purescript type they're unmarshalled into.
 
-The [`Rep`] class indicates a type is [`Rep`]resentable as a SQL value.
-[`Rep`] is automatically implemented for all types that are [`Serialize`]
-and [`Deserialize`].
+The lib does this by transforming the js row array `Array<Array<unknown>>` with `FromRows` ("how many rows do you expect?"), then each row with `FromRow`, then each value with `Deserialize`.
 
-Implementations are provided for `Int`, `String`, `DateTime`, `Buffer`,
-`BigInt`, `Boolean`, `Number`, `Array`, [`Range`]s, `Maybe`, [`Null`]
-and `Unit`.
-
-### Data - Rows
-A single row (multiple SQL values) are deserialized using [`FromRow`],
-which is implemented for:
- - n-tuples of [`Rep`] types
- - `Array a` where `a` is [`Rep`]
- - A single [`Rep`] type
-
-Examples:
+Starting with querying directly into the loose rows as `Array (Array Raw)`:
 ```purescript
-(fromRow []     :: Maybe Int)  == Nothing
-(fromRow [1]    :: Maybe Int)  == Just 1
-(fromRow [1, 2] :: Maybe Int)  == Just 1
-(fromRow []     :: Int /\ Int) == Error
-(fromRow [1, 2] :: Int /\ Int) == 1 /\ 2
-(fromRow []     :: Array Int)  == []
-(fromRow [1, 2] :: Array Int)  == [1, 2]
+a :: Array (Array Raw) <- query "select a, b, c from (values (1, 'foo', true), (4, 'bar', false)) as foo(a, b, c)"
+liftEffect $ log $ show a -- [[1, "foo", true], [4, "bar", false]]
 ```
 
-Multiple rows are deserialized using [`FromRows`],
-which is implemented for:
- - `Array a` where `a` is [`FromRow`]
- - `Maybe a` where `a` is [`FromRow`] (equivalent to `Array.head <<< fromRows`)
- - `a` where `a` is [`FromRow`] (throws if 0 rows yielded)
- - `RowsAffected`
-     - Extracts the number of rows processed by the last command in the query (ex. `INSERT INTO foo (bar) VALUES ('a'), ('b')` -> `INSERT 2` -> `RowsAffected 2`)
+We can tell the query to deserialize the rows as `Int /\ String /\ Boolean` (postgres shape of `(int, text, boolean)` ):
+```purescript
+a :: Array (Int /\ String /\ Boolean) <- query "select a, b, c from (values (1, 'foo', true), (4, 'bar', false)) as foo(a, b, c)"
+liftEffect $ log $ show a -- [Tuple 1 (Tuple "foo" true), Tuple 1 (Tuple "foo" true)]
+```
+
+From there we could unmarshal to `Maybe` to get 0 or 1, or directly into the row type if expect at least 1 row:
+```purescript
+a :: Maybe (Int /\ String /\ Boolean) <- query "select a, b, c from (values (1, 'foo', true), (4, 'bar', false)) as foo(a, b, c)"
+liftEffect $ log $ show a -- Just (Tuple 1 (Tuple "foo" true))
+
+b :: Int /\ String /\ Boolean <- query "select 1, 'foo', true"
+liftEffect $ log $ show b -- Tuple 1 (Tuple "foo" true)
+
+c :: Maybe (Int /\ String /\ Boolean) <- query "select null, null, null limit 0"
+liftEffect $ log $ show c -- Nothing
+```
+
+`FromRows row` supports `Array row`, `Maybe row` or just `row` (failing if 0 returned).
+
+`FromRow row` supports `Array a`, `Tuple a b`, `Maybe a`, or `a` (where `a` / `b` are `Deserialize`)
+
+The idea is that you can deserialize query results directly to the purescript type you care about:
+-   `a :: Int <- query "select 1"`
+    - because there's no outer `Array`, we're saying this just returns 1 row. because there's no inner `Array`, we're saying the row just has 1 value; the int!
+-   `a :: Array Int <- query "select foo.a from (values (1), (2), (3)) as foo(a)"`
+    - Now there's an outer `Array`, so we expect the query to yield multiple rows of shape `(int)`
+-   `a :: Array (Maybe Int) <- query "select foo.a from (values (1), (null), (3)) as foo(a)"`
+    - Some of them are `NULL`!
+- `a :: Int /\ Int <- query "select 1, 2"`
+    - 1 row of `(int, int)`
+- `a :: Array (Int /\ String) <- query "select id, email from users"`
+    - Multiple rows of `(int, string)`
+- `a :: Maybe (String /\ String /\ String) <- query $ "select first_name, last_name, email from users where id = $1" /\ userId`
+    - 0 or 1 rows of `(text, text, text)`
 
 ### Data - Ranges
 Postgres ranges are represented with [`Range`].
@@ -259,59 +267,59 @@ the api of [`node-postgres`]:
   - release clients with [`Pool.release`] or [`Pool.destroy`]
   - release with [`Pool.end`]
 
-[`Pool`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Pool#t:Pool
-[`Config`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Pool#t:Config
-[`Pool.make`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Pool#v:make
-[`Pool.end`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Pool#v:end
-[`Pool.connect`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Pool#v:connect
-[`Pool.destroy`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Pool#v:destroy
-[`Pool.release`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Pool#v:release
+[`Pool`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Pool#t:Pool
+[`Config`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Pool#t:Config
+[`Pool.make`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Pool#v:make
+[`Pool.end`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Pool#v:end
+[`Pool.connect`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Pool#v:connect
+[`Pool.destroy`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Pool#v:destroy
+[`Pool.release`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Pool#v:release
 
-[`Client`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Client#t:Client
-[`Client.end`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Client#v:end
-[`Client.make`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Client#v:make
-[`Client.connected`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Client#v:connected
-[`Client.query`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Client#v:query
-[`Client.queryRaw`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Client#v:queryRaw
-[`Client.exec`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Effect.Aff.Postgres.Client#v:exec
+[`Client`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Client#t:Client
+[`Client.end`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Client#v:end
+[`Client.make`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Client#v:make
+[`Client.connected`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Client#v:connected
+[`Client.query`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Client#v:query
+[`Client.queryRaw`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Client#v:queryRaw
+[`Client.exec`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Effect.Aff.Postgres.Client#v:exec
 
-[`Range`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Range#t:Range
-[`Range.gt`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Range#v:gt
-[`Range.gte`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Range#v:gte
-[`Range.lt`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Range#v:lt
-[`Range.lte`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Range#v:lte
+[`Range`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Range#t:Range
+[`Range.gt`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Range#v:gt
+[`Range.gte`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Range#v:gte
+[`Range.lt`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Range#v:lt
+[`Range.lte`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Range#v:lte
 
-[`Raw`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Raw#t:Raw
-[`Null`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Raw#t:Null
+[`Raw`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Raw#t:Raw
+[`Null`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Raw#t:Null
 
-[`Serialize`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres#t:Serialize
-[`Deserialize`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres#t:Deserialize
-[`Rep`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres#t:Rep
-[`modifyPgTypes`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres#v:modifyPgTypes
+[`Serialize`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres#t:Serialize
+[`Deserialize`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres#t:Deserialize
+[`Rep`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres#t:Rep
+[`modifyPgTypes`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres#v:modifyPgTypes
 
-[`Result`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Result#t:Result
-[`FromRow`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Result#t:FromRow
-[`FromRows`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Result#t:FromRows
+[`Result`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Result#t:Result
+[`FromRow`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Result#t:FromRow
+[`FromRows`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Result#t:FromRows
 
-[`Query`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Query#t:Query
-[`AsQuery`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Query#t:AsQuery
+[`Query`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Query#t:Query
+[`AsQuery`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Query#t:AsQuery
 
-[`Query.Builder`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Query.Builder#t:Builder
-[`Query.Builder.param`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Query.Builder#v:param
-[`Query.Builder.build`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Data.Postgres.Query.Builder#v:build
+[`Query.Builder`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Query.Builder#t:Builder
+[`Query.Builder.param`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Query.Builder#v:param
+[`Query.Builder.build`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Data.Postgres.Query.Builder#v:build
 
-[`MonadCursor`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Control.Monad.Postgres#t:MonadCursor
-[`MonadSession`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Control.Monad.Postgres#t:MonadSession
-[`CursorT`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Control.Monad.Postgres#t:CursorT
-[`SessionT`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Control.Monad.Postgres#t:SessionT
-[`PostgresT`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Control.Monad.Postgres#t:PostgresT
-[`cursor`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Control.Monad.Postgres#v:cursor
-[`session`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Control.Monad.Postgres#v:session
-[`transaction`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Control.Monad.Postgres#v:transaction
-[`runPostgres`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Control.Monad.Postgres#v:runPostgres
-[`query`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Control.Monad.Postgres#v:query
-[`exec`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Control.Monad.Postgres#v:exec
-[`exec_`]: https://pursuit.purescript.org////////////////////////////////////////////////////////////packages/purescript-postgresql/2.0.17/Control.Monad.Postgres#v:exec_
+[`MonadCursor`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Control.Monad.Postgres#t:MonadCursor
+[`MonadSession`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Control.Monad.Postgres#t:MonadSession
+[`CursorT`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Control.Monad.Postgres#t:CursorT
+[`SessionT`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Control.Monad.Postgres#t:SessionT
+[`PostgresT`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Control.Monad.Postgres#t:PostgresT
+[`cursor`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Control.Monad.Postgres#v:cursor
+[`session`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Control.Monad.Postgres#v:session
+[`transaction`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Control.Monad.Postgres#v:transaction
+[`runPostgres`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Control.Monad.Postgres#v:runPostgres
+[`query`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Control.Monad.Postgres#v:query
+[`exec`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Control.Monad.Postgres#v:exec
+[`exec_`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.18/Control.Monad.Postgres#v:exec_
 
 [`node-postgres`]: https://node-postgres.com/
 [`pg-types`]: https://github.com/brianc/node-pg-types/
