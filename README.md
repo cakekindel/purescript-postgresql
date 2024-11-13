@@ -8,6 +8,7 @@ Purescript PostgreSQL driver
    - [Ranges](#data---ranges)
  - [Queries](#queries)
    - [Builder](#queries---builder)
+ - [Errors](#errors)
  - [Monads](#monads)
    - [`PostgresT`](#monads---postgrest)
    - [`SessionT`](#monads---sessiont)
@@ -50,11 +51,12 @@ import Effect.Class (liftEffect)
 import Effect.Aff (launchAff_)
 import Effect.Console (log)
 import Control.Monad.Postgres (runPostgres, query)
+import Effect.Postgres.Error.Except as PG.X
 
 main :: Effect Unit
 main =
   launchAff_ do
-    msg <- runPostgres pgConfig $ query "select 'hello, world!'"
+    msg <- PG.X.run $ runPostgres pgConfig $ query "select 'hello, world!'"
     liftEffect $ log msg -- logs 'hello, world!'
 ```
 
@@ -191,21 +193,37 @@ that will reference that value in the query.
 
 [`Query.Builder.build`] renders the query to [`Query`]
 
+## Errors
+Errors are wrapped in [`Error`]:
+```haskell
+data Error
+  = Deserializing Query Foreign.MultipleErrors
+  | Serializing Foreign.MultipleErrors
+  | Executing Query Effect.Error
+  | Connecting Effect.Error
+  | Disconnecting Effect.Error
+  | Other Effect.Error
+```
+
+Most operations in this library return a [`Except`], which is just
+`ExceptT` pinned to `NonEmptyArray Error`.
+
+This can be unlifted to `Aff` with [`Except.run`].
+
 ## Monads
 ### Monads - `PostgresT`
-[`PostgresT`] is the database driver's main entry point,
-and is just an `Aff` with access to a [`Pool`].
+[`PostgresT`] is a monadic context with a connection [`Pool`]. It allows running [`transaction`]s, simple [queries][`query`] and more.
 
-Run in `Aff` with [`runPostgres`]:
+#### Running in Aff
 ```purescript
 main :: Effect Unit
 main =
   launchAff_ do
-    hi <- runPostgres {} $ query "select 'hi!'"
+    hi <- PG.X.run $ runPostgres {} $ query "select 'hi!'"
     liftEffect $ log hi
 ```
 
-Execute [`SessionT`] monads with [`session`] or [`transaction`]:
+#### Executing a transaction
 ```purescript
 dbMain :: PostgresT Aff Unit
 dbMain = do
@@ -220,7 +238,7 @@ dbMain = do
   pure unit
 ```
 
-Implements [`MonadSession`] as a shorthand for single-query [`session`]s:
+#### Simple queries
 ```purescript
 dbMain :: PostgresT Aff Int
 dbMain = exec_ $ "insert into persons (name) values ($1);" /\ "Sarah"
@@ -228,7 +246,7 @@ dbMain = exec_ $ "insert into persons (name) values ($1);" /\ "Sarah"
 -- dbMain = session $ exec_ ...
 ```
 
-Execute [`CursorT`] monads with [`cursor`]:
+#### Executing cursor queries
 ```purescript
 dbMain :: PostgresT Aff Int
 dbMain =
@@ -241,12 +259,12 @@ dbMain =
 ```
 
 ### Monads - `SessionT`
-[`SessionT`] is an `Aff` with access to a [`Client`]
-issued by a [`Pool`], connected to the database.
+[`SessionT`] is a context that can run queries using a specific [`Client`].
 
-Run in [`PostgresT`] with [`session`] or [`transaction`]
+Sessions can be started in [`PostgresT`], which will ask the [`Pool`] for a [`Client`],
+then release the [`Client`] after the session completes.
 
-Perform queries with [`query`], [`exec`] or [`exec_`]
+Within sessions, queries can be performed with [`query`], [`exec`] and [`exec_`].
 
 ### Monads - `CursorT`
 [`CursorT`] is a transaction [`SessionT`] with access to a named server-side cursor.
@@ -267,59 +285,63 @@ the api of [`node-postgres`]:
   - release clients with [`Pool.release`] or [`Pool.destroy`]
   - release with [`Pool.end`]
 
-[`Pool`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Pool#t:Pool
-[`Config`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Pool#t:Config
-[`Pool.make`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Pool#v:make
-[`Pool.end`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Pool#v:end
-[`Pool.connect`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Pool#v:connect
-[`Pool.destroy`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Pool#v:destroy
-[`Pool.release`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Pool#v:release
+[`Pool`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Pool#t:Pool
+[`Config`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Pool#t:Config
+[`Pool.make`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Pool#v:make
+[`Pool.end`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Pool#v:end
+[`Pool.connect`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Pool#v:connect
+[`Pool.destroy`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Pool#v:destroy
+[`Pool.release`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Pool#v:release
 
-[`Client`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Client#t:Client
-[`Client.end`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Client#v:end
-[`Client.make`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Client#v:make
-[`Client.connected`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Client#v:connected
-[`Client.query`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Client#v:query
-[`Client.queryRaw`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Client#v:queryRaw
-[`Client.exec`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Effect.Aff.Postgres.Client#v:exec
+[`Client`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Client#t:Client
+[`Client.end`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Client#v:end
+[`Client.make`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Client#v:make
+[`Client.connected`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Client#v:connected
+[`Client.query`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Client#v:query
+[`Client.queryRaw`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Client#v:queryRaw
+[`Client.exec`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Aff.Postgres.Client#v:exec
 
-[`Range`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Range#t:Range
-[`Range.gt`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Range#v:gt
-[`Range.gte`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Range#v:gte
-[`Range.lt`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Range#v:lt
-[`Range.lte`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Range#v:lte
+[`Range`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Range#t:Range
+[`Range.gt`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Range#v:gt
+[`Range.gte`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Range#v:gte
+[`Range.lt`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Range#v:lt
+[`Range.lte`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Range#v:lte
 
-[`Raw`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Raw#t:Raw
-[`Null`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Raw#t:Null
+[`Raw`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Raw#t:Raw
+[`Null`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Raw#t:Null
 
-[`Serialize`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres#t:Serialize
-[`Deserialize`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres#t:Deserialize
-[`Rep`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres#t:Rep
-[`modifyPgTypes`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres#v:modifyPgTypes
+[`Serialize`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres#t:Serialize
+[`Deserialize`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres#t:Deserialize
+[`Rep`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres#t:Rep
+[`modifyPgTypes`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres#v:modifyPgTypes
 
-[`Result`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Result#t:Result
-[`FromRow`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Result#t:FromRow
-[`FromRows`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Result#t:FromRows
+[`Result`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Result#t:Result
+[`FromRow`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Result#t:FromRow
+[`FromRows`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Result#t:FromRows
 
-[`Query`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Query#t:Query
-[`AsQuery`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Query#t:AsQuery
+[`Query`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Query#t:Query
+[`AsQuery`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Query#t:AsQuery
 
-[`Query.Builder`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Query.Builder#t:Builder
-[`Query.Builder.param`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Query.Builder#v:param
-[`Query.Builder.build`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Data.Postgres.Query.Builder#v:build
+[`Query.Builder`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Query.Builder#t:Builder
+[`Query.Builder.param`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Query.Builder#v:param
+[`Query.Builder.build`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Data.Postgres.Query.Builder#v:build
 
-[`MonadCursor`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Control.Monad.Postgres#t:MonadCursor
-[`MonadSession`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Control.Monad.Postgres#t:MonadSession
-[`CursorT`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Control.Monad.Postgres#t:CursorT
-[`SessionT`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Control.Monad.Postgres#t:SessionT
-[`PostgresT`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Control.Monad.Postgres#t:PostgresT
-[`cursor`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Control.Monad.Postgres#v:cursor
-[`session`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Control.Monad.Postgres#v:session
-[`transaction`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Control.Monad.Postgres#v:transaction
-[`runPostgres`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Control.Monad.Postgres#v:runPostgres
-[`query`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Control.Monad.Postgres#v:query
-[`exec`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Control.Monad.Postgres#v:exec
-[`exec_`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/Control.Monad.Postgres#v:exec_
+[`Except`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Postgres.Error.Except#t:Except
+[`Error`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Postgres.Error#t:Error
+[`Except.run`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Effect.Postgres.Error.Except#v:run
+
+[`MonadCursor`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Control.Monad.Postgres#t:MonadCursor
+[`MonadSession`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Control.Monad.Postgres#t:MonadSession
+[`CursorT`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Control.Monad.Postgres#t:CursorT
+[`SessionT`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Control.Monad.Postgres#t:SessionT
+[`PostgresT`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Control.Monad.Postgres#t:PostgresT
+[`cursor`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Control.Monad.Postgres#v:cursor
+[`session`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Control.Monad.Postgres#v:session
+[`transaction`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Control.Monad.Postgres#v:transaction
+[`runPostgres`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Control.Monad.Postgres#v:runPostgres
+[`query`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Control.Monad.Postgres#v:query
+[`exec`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Control.Monad.Postgres#v:exec
+[`exec_`]: https://pursuit.purescript.org/packages/purescript-postgresql/2.0.19/docs/Control.Monad.Postgres#v:exec_
 
 [`node-postgres`]: https://node-postgres.com/
 [`pg-types`]: https://github.com/brianc/node-pg-types/
