@@ -63,35 +63,35 @@ spec =
       it "bracket catches error in acq" $ const do
         either <-
           flip RE.toEither unit
-          $ bracket
-              (liftAff $ throwError $ Exn.error "foo")
-              (const $ const $ pure unit)
-              (const $ pure unit)
+            $ bracket
+                (liftAff $ throwError $ Exn.error "foo")
+                (const $ const $ pure unit)
+                (const $ pure unit)
         isLeft either `shouldEqual` true
       it "bracket catches error in rel" $ const do
         either <-
           flip RE.toEither unit
-          $ bracket
-              (pure unit)
-              (const $ const $ liftAff $ throwError $ Exn.error "foo")
-              (const $ pure unit)
+            $ bracket
+                (pure unit)
+                (const $ const $ liftAff $ throwError $ Exn.error "foo")
+                (const $ pure unit)
         isLeft either `shouldEqual` true
       it "bracket catches error in go" $ const do
         either <-
           flip RE.toEither unit
-          $ bracket
-              (pure unit)
-              (const $ const $ pure unit)
-              (const $ liftAff $ throwError $ Exn.error "foo")
+            $ bracket
+                (pure unit)
+                (const $ const $ pure unit)
+                (const $ liftAff $ throwError $ Exn.error "foo")
         isLeft either `shouldEqual` true
       it "forked bracket catches error in acq" $ const do
         either <- flip RE.toEither unit do
           fiber <-
             fork
-            $ bracket
-                (liftAff $ throwError $ Exn.error "foo")
-                (const $ const $ pure unit)
-                (const $ pure unit)
+              $ bracket
+                  (liftAff $ throwError $ Exn.error "foo")
+                  (const $ const $ pure unit)
+                  (const $ pure unit)
           liftAff $ delay $ wrap 1.0
           join fiber
         isLeft either `shouldEqual` true
@@ -99,10 +99,10 @@ spec =
         either <- flip RE.toEither unit do
           fiber <-
             fork
-            $ bracket
-              (pure unit)
-              (const $ const $ liftAff $ throwError $ Exn.error "foo")
-              (const $ pure unit)
+              $ bracket
+                  (pure unit)
+                  (const $ const $ liftAff $ throwError $ Exn.error "foo")
+                  (const $ pure unit)
           liftAff $ delay $ wrap 1.0
           join fiber
         isLeft either `shouldEqual` true
@@ -110,10 +110,10 @@ spec =
         either <- flip RE.toEither unit do
           fiber <-
             fork
-            $ bracket
-              (pure unit)
-              (const $ const $ pure unit)
-              (const $ liftAff $ throwError $ Exn.error "foo")
+              $ bracket
+                  (pure unit)
+                  (const $ const $ pure unit)
+                  (const $ liftAff $ throwError $ Exn.error "foo")
           liftAff $ delay $ wrap 1.0
           join fiber
         isLeft either `shouldEqual` true
@@ -121,7 +121,8 @@ spec =
         either <-
           flip RE.toEither unit
             $ parSequence
-            $ [ liftAff $ throwError $ Exn.error "a"
+            $
+              [ liftAff $ throwError $ Exn.error "a"
               , pure "a"
               ]
         isLeft either `shouldEqual` true
@@ -129,7 +130,8 @@ spec =
         either <-
           flip RE.toEither unit
             $ parOneOf
-            $ [ liftAff $ throwError $ Exn.error "a"
+            $
+              [ liftAff $ throwError $ Exn.error "a"
               , liftAff $ throwError $ Exn.error "b"
               ]
         isLeft either `shouldEqual` true

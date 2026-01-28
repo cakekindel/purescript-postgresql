@@ -93,12 +93,12 @@ instance (MonadStartSession s, MonadAff m) => MonadSession (RE s m) where
 
 handleStream :: forall e m r. MonadEffect m => MonadError e m => Effect Unit -> m (Stream r) -> m (Stream r)
 handleStream onError getStream =
-    flip catchError
-      (\e -> liftEffect onError *> throwError e)
-      do
-        stream <- getStream
-        liftEffect $ onErrorOrClose stream onError
-        pure stream
+  flip catchError
+    (\e -> liftEffect onError *> throwError e)
+    do
+      stream <- getStream
+      liftEffect $ onErrorOrClose stream onError
+      pure stream
 
 onErrorOrClose :: forall r. Stream r -> Effect Unit -> Effect Unit
 onErrorOrClose stream eff = do

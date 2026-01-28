@@ -9,7 +9,7 @@ import Data.Time.Duration (class Duration, Days(..), Hours(..), Milliseconds(..)
 import Effect (Effect)
 
 zero :: IntervalRecord
-zero = {years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0, milliseconds: 0.0}
+zero = { years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0, milliseconds: 0.0 }
 
 type IntervalRecord =
   { years :: Int
@@ -85,4 +85,4 @@ fromDuration a =
     seconds = Int.trunc $ minutesRem / secondFactor
     milliseconds = minutesRem - (Int.toNumber seconds * secondFactor)
   in
-    make {years: 0, months: 0, days, hours, minutes, seconds, milliseconds}
+    make { years: 0, months: 0, days, hours, minutes, seconds, milliseconds }

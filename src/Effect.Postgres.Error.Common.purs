@@ -33,7 +33,7 @@ toString =
     indent n s = fold $ ((fold $ Array.replicate n "  ") <> _) <$> String.split (wrap "\n") s
     jsError n e =
       indent n (Effect.message e)
-      <> maybe "" (\s -> "\n" <> indent n s) (Effect.stack e)
+        <> maybe "" (\s -> "\n" <> indent n s) (Effect.stack e)
   in
     case _ of
       Deserializing q es -> "Deserializing " <> show q <> "\n" <> indent 1 (show es)

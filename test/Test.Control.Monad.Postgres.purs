@@ -45,7 +45,7 @@ spec =
       b `shouldEqual` 2
     it "multiple sessions concurrently" \cfg -> do
       nums <- X.run $ runPostgres cfg $ parTraverse (\n -> query $ "select $1 :: int" /\ n) (Array.range 1 3)
-      Array.sort nums `shouldEqual` [1, 2, 3]
+      Array.sort nums `shouldEqual` [ 1, 2, 3 ]
     it "transaction commits" \cfg -> do
       a <- X.run $ runPostgres cfg do
         exec_ "create temporary table test_txn_commits (id int);"
@@ -60,7 +60,7 @@ spec =
           exec_ "insert into test_txn_rolls_back values (2);"
           throwError $ pure $ E.Other $ error "foo"
         query "select * from test_txn_rolls_back"
-      a `shouldEqual` [1]
+      a `shouldEqual` [ 1 ]
     it "cursor" \cfg ->
       X.run $ runPostgres cfg do
         exec_ $ "create temporary table test_cursor_data (id int primary key generated always as identity)"

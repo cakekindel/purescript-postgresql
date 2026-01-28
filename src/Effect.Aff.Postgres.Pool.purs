@@ -11,7 +11,7 @@ import Effect.Postgres.Error as E
 import Effect.Postgres.Error.Except as E.Except
 import Effect.Postgres.Pool (Pool)
 import Effect.Postgres.Pool
-  (Config
+  ( Config
   , Pool
   , PoolConfigRaw
   , acquireE

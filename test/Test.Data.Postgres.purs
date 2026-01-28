@@ -59,7 +59,7 @@ instance Arbitrary GenIntervalSubMonth where
     minutes <- chooseInt 0 59
     seconds <- chooseInt 0 59
     milliseconds <- chooseFloat 0.0 999.9
-    pure $ wrap $ Interval.make $ Interval.zero {days = days, hours = hours, minutes = minutes, seconds = seconds, milliseconds = milliseconds}
+    pure $ wrap $ Interval.make $ Interval.zero { days = days, hours = hours, minutes = minutes, seconds = seconds, milliseconds = milliseconds }
 
 newtype GenInterval = GenInterval Interval
 
@@ -73,7 +73,7 @@ instance Arbitrary GenInterval where
     minutes <- chooseInt 0 59
     seconds <- chooseInt 0 59
     milliseconds <- chooseFloat 0.0 999.9
-    pure $ wrap $ Interval.make {years, months, days, hours, minutes, seconds, milliseconds}
+    pure $ wrap $ Interval.make { years, months, days, hours, minutes, seconds, milliseconds }
 
 newtype GenSmallInt = GenSmallInt Int
 
@@ -225,13 +225,14 @@ spec =
           let
             durationFromGenInterval :: forall d. Semigroup d => Duration d => Newtype d Number => GenIntervalSubMonth -> d
             durationFromGenInterval = fromMaybe (wrap 0.0) <<< Interval.toDuration <<< unwrap
+
             durationEq :: forall d. Duration d => Newtype d Number => d -> d -> Boolean
             durationEq a b = Number.abs (unwrap a - unwrap b) <= 0.001
-          check @Milliseconds @GenIntervalSubMonth { purs: "Milliseconds", sql: "interval", fromArb: durationFromGenInterval, isEq: durationEq}
-          check @Seconds @GenIntervalSubMonth { purs: "Seconds", sql: "interval", fromArb: durationFromGenInterval, isEq: durationEq}
-          check @Minutes @GenIntervalSubMonth { purs: "Minutes", sql: "interval", fromArb: durationFromGenInterval, isEq: durationEq}
-          check @Hours @GenIntervalSubMonth { purs: "Hours", sql: "interval", fromArb: durationFromGenInterval, isEq: durationEq}
-          check @Days @GenIntervalSubMonth { purs: "Days", sql: "interval", fromArb: durationFromGenInterval, isEq: durationEq}
+          check @Milliseconds @GenIntervalSubMonth { purs: "Milliseconds", sql: "interval", fromArb: durationFromGenInterval, isEq: durationEq }
+          check @Seconds @GenIntervalSubMonth { purs: "Seconds", sql: "interval", fromArb: durationFromGenInterval, isEq: durationEq }
+          check @Minutes @GenIntervalSubMonth { purs: "Minutes", sql: "interval", fromArb: durationFromGenInterval, isEq: durationEq }
+          check @Hours @GenIntervalSubMonth { purs: "Hours", sql: "interval", fromArb: durationFromGenInterval, isEq: durationEq }
+          check @Days @GenIntervalSubMonth { purs: "Days", sql: "interval", fromArb: durationFromGenInterval, isEq: durationEq }
 
           check @Int @GenSmallInt { purs: "Int", sql: "int2", fromArb: unwrap, isEq: eq }
           check @Int { purs: "Int", sql: "int4", fromArb: identity, isEq: eq }

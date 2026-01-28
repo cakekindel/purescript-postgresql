@@ -49,13 +49,13 @@ spec = describe "Pool" do
         c <- X.run $ Pool.connect p
         finally (liftEffect $ X.run $ Pool.release p c) $ joinFiber expect
       it "acquire" \p -> do
-        c <- X.run$ Pool.connect p
-        liftEffect $ X.run$ Pool.release p c
+        c <- X.run $ Pool.connect p
+        liftEffect $ X.run $ Pool.release p c
         expect <- forkAff do
           c'' <- onceAff Pool.acquireE p
           refEq c c'' `shouldEqual` true
         c' <- X.run $ Pool.connect p
-        finally (liftEffect $ X.run$ Pool.release p c') $ joinFiber expect
+        finally (liftEffect $ X.run $ Pool.release p c') $ joinFiber expect
       it "release" \p -> do
         c <- X.run $ Pool.connect p
         expect <- forkAff do

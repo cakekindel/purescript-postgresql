@@ -74,11 +74,12 @@ instance
   ( MonadAff m
   , MonadSession (SessionT m)
   , MonadCursor (CursorT t (SessionT m)) t
-  ) => MonadPostgres
-         (PostgresT m)
-         (SessionT m)
-         (CursorT ct (SessionT m))
-         ct
+  ) =>
+  MonadPostgres
+    (PostgresT m)
+    (SessionT m)
+    (CursorT ct (SessionT m))
+    ct
   where
   session m = do
     pool <- ask
@@ -117,6 +118,7 @@ runPostgres cfg m =
   let
     acq :: RE Unit m Pool
     acq = liftEffect $ Pool.make @r @missing @trash cfg
+
     rel :: _ -> Pool -> RE Unit m Unit
     rel _ p = RE.liftExcept $ hoist liftAff $ Pool.end p
   in
