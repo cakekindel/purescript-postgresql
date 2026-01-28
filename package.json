@@ -4,10 +4,13 @@
   "module": "index.js",
   "type": "module",
   "scripts": {
-    "fmt": "bun bun/fmt.js"
+    "fmt": "bun bun/fmt.js",
+    "changelog": "conventional-changelog -p conventionalcommits"
   },
   "devDependencies": {
     "bun-types": "1.0.11",
+    "conventional-changelog": "^7.1.1",
+    "conventional-changelog-conventionalcommits": "^9.1.0",
     "purs-tidy": "^0.10.0",
     "typescript": "^5.0.0"
   },
