@@ -2,23 +2,18 @@ module Test.Main where
 
 import Prelude
 
-import Control.Alternative (guard)
 import Control.Monad.Rec.Class (untilJust)
-import Data.Either (Either(..), hush)
+import Data.Either (Either(..))
 import Data.Filterable (filter)
-import Data.Maybe (Maybe(..), isNothing, maybe)
+import Data.Maybe (Maybe(..), isNothing)
 import Data.Newtype (wrap)
-import Data.String as String
-import Effect (Effect, untilE)
+import Effect (Effect)
 import Effect.Aff (Aff, bracket, delay, launchAff_, makeAff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
-import Node.Buffer as Buffer
 import Node.ChildProcess (ChildProcess)
 import Node.ChildProcess as ChildProcess
-import Node.ChildProcess.Aff as ChildProcess.Aff
 import Node.ChildProcess.Types (Exit(..), stringSignal)
-import Node.Encoding (Encoding(..))
 import Node.EventEmitter as Event
 import Test.Control.Monad.Postgres as Test.Control.Monad.Postgres
 import Test.Data.Postgres as Test.Data.Postgres

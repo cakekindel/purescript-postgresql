@@ -2,10 +2,6 @@ module Test.Data.Postgres.Custom where
 
 import Prelude
 
-import Control.Monad.Error.Class (liftEither)
-import Control.Monad.Except (runExceptT)
-import Data.Bifunctor (lmap)
-import Data.DateTime (DateTime(..))
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)

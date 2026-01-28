@@ -2,11 +2,9 @@ module Test.Control.Monad.Postgres where
 
 import Prelude
 
-import Control.Monad.Cont (lift)
-import Control.Monad.Error.Class (catchError, throwError, try)
+import Control.Monad.Error.Class (throwError, try)
 import Control.Monad.Fork.Class (class MonadBracket, bracket)
 import Control.Monad.Postgres (PostgresT, cursor, exec_, fetch, fetchAll, fetchOne, query, runPostgres, transaction)
-import Control.Monad.Reader (ask)
 import Control.Parallel (parTraverse)
 import Data.Array as Array
 import Data.Array.NonEmpty as Array.NonEmpty
@@ -18,12 +16,9 @@ import Data.Tuple.Nested ((/\))
 import Effect.Aff (Fiber)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff.Unlift (UnliftAff(..), askUnliftAff)
-import Effect.Class (liftEffect)
-import Effect.Console (log)
 import Effect.Exception (Error, error)
 import Effect.Postgres.Error as E
 import Effect.Postgres.Error.Except as X
-import Effect.Postgres.Error.RE as RE
 import Partial.Unsafe (unsafePartial)
 import Test.Common (re, withConfig)
 import Test.Spec (Spec, around, describe, it)
